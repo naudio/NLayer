@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>$id$</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Mark Heath</authors>
+    <owners>Mark Heath</owners>
+    <licenseUrl>https://github.com/naudio/NLayer/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/naudio/NLayer</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>NAudio support for NLayer</description>
+    <releaseNotes>First Release</releaseNotes>
+    <copyright>Copyright 2017</copyright>
+    <tags>NAudio NLayer MP3 audio</tags>
+    <dependencies>
+      <dependency id="NAudio" version="1.8.0" />
+      <dependency id="NLayer" version="1.11.0" />
+    </dependencies>
+  </metadata>
+</package>
