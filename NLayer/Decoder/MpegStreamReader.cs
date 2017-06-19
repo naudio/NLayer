@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.IO;
 
 namespace NLayer.Decoder
@@ -570,7 +567,11 @@ namespace NLayer.Decoder
 
                     while (!_canSeek && FrameBase.TotalAllocation >= maxAllocation)
                     {
+#if NET35 
                         System.Threading.Thread.Sleep(500);
+#else
+                        System.Threading.Tasks.Task.Delay(500).Wait(); //
+#endif
                     }
                 }
             }

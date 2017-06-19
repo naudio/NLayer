@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 
 namespace NLayer
 {
@@ -40,7 +37,7 @@ namespace NLayer
         {
             if (_closeStream)
             {
-                _stream.Close();
+                _stream.Dispose();
                 _closeStream = false;
             }
         }
