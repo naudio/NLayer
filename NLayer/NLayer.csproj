@@ -8,7 +8,7 @@
     <PackageLicenseUrl>https://github.com/naudio/NLayer/blob/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/naudio/NLayer</PackageProjectUrl>
     <Description>Fully Managed MPEG 1 &amp; 2 Decoder for Layers 1, 2, &amp; 3</Description>
-    <PackageTags>audio csharp mp</PackageTags>
+    <PackageTags>audio csharp mp3</PackageTags>
     <Company />
   </PropertyGroup>
 
