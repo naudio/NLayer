@@ -22,7 +22,10 @@ namespace NLayer
             _ch1 = new float[1152];
         }
 
-        // eq is an array of 32 x dB adjustments
+        /// <summary>
+        /// Set the equalizer.
+        /// </summary>
+        /// <param name="eq">The equalizer, represented by an array of 32 adjustments in dB.</param>
         public void SetEQ(float[] eq)
         {
             if (eq != null)
@@ -41,8 +44,19 @@ namespace NLayer
             }
         }
 
+        /// <summary>
+        /// Stereo mode used in decoding.
+        /// </summary>
         public StereoMode StereoMode { get; set; }
 
+        /// <summary>
+        /// Decode the Mpeg frame into provided buffer. Do exactly the same as <see cref="DecodeFrame(IMpegFrame, float[], int)"/>
+        /// except that the data is written in type as byte array, while still representing single-precision float (in local endian).
+        /// </summary>
+        /// <param name="frame">The Mpeg frame to be decoded.</param>
+        /// <param name="dest">Destination buffer. Decoded PCM (single-precision floating point array) will be written into it.</param>
+        /// <param name="destOffset">Writing offset on the destination buffer.</param>
+        /// <returns></returns>
         public int DecodeFrame(IMpegFrame frame, byte[] dest, int destOffset)
         {
             if (frame == null) throw new ArgumentNullException("frame");
@@ -58,6 +72,26 @@ namespace NLayer
             return DecodeFrameImpl(frame, dest, destOffset / 4) * 4;
         }
 
+        /// <summary>
+        /// Decode the Mpeg frame into provided buffer.
+        /// Result varies with diffirent <see cref="StereoMode"/>:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>For <see cref="NLayer.StereoMode.Both"/>, sample data on both two channels will occur in turn (left first).</description>
+        /// </item>
+        /// <item>
+        /// <description>For <see cref="NLayer.StereoMode.LeftOnly"/> and <see cref="NLayer.StereoMode.RightOnly"/>, only data on
+        /// specified channel will occur.</description>
+        /// </item>
+        /// <item>
+        /// <description>For <see cref="NLayer.StereoMode.DownmixToMono"/>, two channels will be down-mixed into single channel.</description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="frame">The Mpeg frame to be decoded.</param>
+        /// <param name="dest">Destination buffer. Decoded PCM (single-precision floating point array) will be written into it.</param>
+        /// <param name="destOffset">Writing offset on the destination buffer.</param>
+        /// <returns></returns>
         public int DecodeFrame(IMpegFrame frame, float[] dest, int destOffset)
         {
             if (frame == null) throw new ArgumentNullException("frame");
@@ -134,6 +168,9 @@ namespace NLayer
             return 0;
         }
 
+        /// <summary>
+        /// Reset the decoder.
+        /// </summary>
         public void Reset()
         {
             // the synthesis filters need to be cleared
