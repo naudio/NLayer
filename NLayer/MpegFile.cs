@@ -163,9 +163,9 @@ namespace NLayer
         /// except that the data is written in type of byte, while still representing single-precision float (in local endian).
         /// </summary>
         /// <param name="buffer">Buffer to write. Floating point data will be actually written into this byte array.</param>
-        /// <param name="index">Start position of samples to be read. This is used as an offset on the <see cref="Position"/>.</param>
-        /// <param name="count">Count of samples to be read.</param>
-        /// <returns>Sample count actually reads.</returns>
+        /// <param name="index">Writing offset on the destination buffer.</param>
+        /// <param name="count">Length of samples to be read, in bytes.</param>
+        /// <returns>Sample size actually reads, in bytes.</returns>
         public int ReadSamples(byte[] buffer, int index, int count)
         {
             if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
@@ -193,7 +193,7 @@ namespace NLayer
         /// </list>
         /// </summary>
         /// <param name="buffer">Buffer to write.</param>
-        /// <param name="index">Start position of samples to be read. This is used as an offset on the <see cref="Position"/>.</param>
+        /// <param name="index">Writing offset on the destination buffer.</param>
         /// <param name="count">Count of samples to be read.</param>
         /// <returns>Sample count actually reads.</returns>
         public int ReadSamples(float[] buffer, int index, int count)
