@@ -13,11 +13,19 @@ namespace NLayer
         object _seekLock = new object();
         long _position;
 
+        /// <summary>
+        /// Construct Mpeg file representation from filename.
+        /// </summary>
+        /// <param name="fileName">The file which contains Mpeg data.</param>
         public MpegFile(string fileName)
         {
             Init(System.IO.File.Open(fileName, System.IO.FileMode.Open, System.IO.FileAccess.Read, System.IO.FileShare.Read), true);
         }
 
+        /// <summary>
+        /// Construct Mpeg file representation from stream.
+        /// </summary>
+        /// <param name="stream">The input stream which contains Mpeg data.</param>
         public MpegFile(System.IO.Stream stream)
         {
             Init(stream, false);
@@ -33,6 +41,9 @@ namespace NLayer
             _decoder = new MpegFrameDecoder();
         }
 
+        /// <summary>
+        /// Implements IDisposable.Dispose.
+        /// </summary>
         public void Dispose()
         {
             if (_closeStream)
@@ -41,14 +52,29 @@ namespace NLayer
                 _closeStream = false;
             }
         }
-
+        /// <summary>
+        /// Sample rate of source Mpeg, in Hertz.
+        /// </summary>
         public int SampleRate { get { return _reader.SampleRate; } }
+
+        /// <summary>
+        /// Channel count of source Mpeg.
+        /// </summary>
         public int Channels { get { return _reader.Channels; } }
 
+        /// <summary>
+        /// Whether the Mpeg stream supports seek operation.
+        /// </summary>
         public bool CanSeek { get { return _reader.CanSeek; } }
 
+        /// <summary>
+        /// Data length of decoded data, in PCM.
+        /// </summary>
         public long Length { get { return _reader.SampleCount * _reader.Channels * sizeof(float); } }
 
+        /// <summary>
+        /// Media duration of the Mpeg file.
+        /// </summary>
         public TimeSpan Duration
         {
             get
@@ -59,6 +85,9 @@ namespace NLayer
             }
         }
 
+        /// <summary>
+        /// Current decode position, in number of sample. Calling the setter will result in a seeking operation.
+        /// </summary>
         public long Position
         {
             get { return _position; }
@@ -102,23 +131,41 @@ namespace NLayer
             }
         }
 
+        /// <summary>
+        /// Current decode position, represented by time. Calling the setter will result in a seeking operation.
+        /// </summary>
         public TimeSpan Time
         {
             get { return TimeSpan.FromSeconds((double)_position / sizeof(float) / _reader.Channels / _reader.SampleRate); }
             set { Position = (long)(value.TotalSeconds * _reader.SampleRate * _reader.Channels * sizeof(float)); }
         }
 
+        /// <summary>
+        /// Set the equalizer.
+        /// </summary>
+        /// <param name="eq">The equalizer, represented by an array of 32 adjustments in dB.</param>
         public void SetEQ(float[] eq)
         {
             _decoder.SetEQ(eq);
         }
 
+        /// <summary>
+        /// Stereo mode used in decoding.
+        /// </summary>
         public StereoMode StereoMode
         {
             get { return _decoder.StereoMode; }
             set { _decoder.StereoMode = value; }
         }
 
+        /// <summary>
+        /// Read specified samples into provided buffer. Do exactly the same as <see cref="ReadSamples(float[], int, int)"/>
+        /// except that the data is written in type of byte, while still representing single-precision float (in local endian).
+        /// </summary>
+        /// <param name="buffer">Buffer to write. Floating point data will be actually written into this byte array.</param>
+        /// <param name="index">Start position of samples to be read. This is used as an offset on the <see cref="Position"/>.</param>
+        /// <param name="count">Count of samples to be read.</param>
+        /// <returns>Sample count actually reads.</returns>
         public int ReadSamples(byte[] buffer, int index, int count)
         {
             if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
@@ -129,6 +176,26 @@ namespace NLayer
             return ReadSamplesImpl(buffer, index, count);
         }
 
+        /// <summary>
+        /// Read specified samples into provided buffer, as PCM format.
+        /// Result varies with diffirent <see cref="StereoMode"/>:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>For <see cref="NLayer.StereoMode.Both"/>, sample data on both two channels will occur in turn (left first).</description>
+        /// </item>
+        /// <item>
+        /// <description>For <see cref="NLayer.StereoMode.LeftOnly"/> and <see cref="NLayer.StereoMode.RightOnly"/>, only data on
+        /// specified channel will occur.</description>
+        /// </item>
+        /// <item>
+        /// <description>For <see cref="NLayer.StereoMode.DownmixToMono"/>, two channels will be down-mixed into single channel.</description>
+        /// </item>
+        /// </list>
+        /// </summary>
+        /// <param name="buffer">Buffer to write.</param>
+        /// <param name="index">Start position of samples to be read. This is used as an offset on the <see cref="Position"/>.</param>
+        /// <param name="count">Count of samples to be read.</param>
+        /// <returns>Sample count actually reads.</returns>
         public int ReadSamples(float[] buffer, int index, int count)
         {
             if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
