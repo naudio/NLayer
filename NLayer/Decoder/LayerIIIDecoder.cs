@@ -790,68 +790,66 @@ namespace NLayer.Decoder
                     _channels = 2;
                 }
 
-                for (var gr = 0; gr < 2; gr++)
+                var gr = 0;
+                for (var ch = 0; ch < _channels; ch++)
                 {
-                    for (var ch = 0; ch < _channels; ch++)
+                    // part2_3_length[gr][ch]        12
+                    _part23Length[gr][ch] = frame.ReadBits(12);
+                    // big_values[gr][ch]            9
+                    _bigValues[gr][ch] = frame.ReadBits(9);
+                    // global_gain[gr][ch]           8
+                    _globalGain[gr][ch] = GAIN_TAB[frame.ReadBits(8)];
+                    // scalefac_compress[gr][ch]     9
+                    _scalefacCompress[gr][ch] = frame.ReadBits(9);
+                    // blocksplit_flag[gr][ch]       1
+                    _blockSplitFlag[gr][ch] = frame.ReadBits(1) == 1;
+                    if (_blockSplitFlag[gr][ch])
                     {
-                        // part2_3_length[gr][ch]        12
-                        _part23Length[gr][ch] = frame.ReadBits(12);
-                        // big_values[gr][ch]            9
-                        _bigValues[gr][ch] = frame.ReadBits(9);
-                        // global_gain[gr][ch]           8
-                        _globalGain[gr][ch] = GAIN_TAB[frame.ReadBits(8)];
-                        // scalefac_compress[gr][ch]     9
-                        _scalefacCompress[gr][ch] = frame.ReadBits(9);
-                        // blocksplit_flag[gr][ch]       1
-                        _blockSplitFlag[gr][ch] = frame.ReadBits(1) == 1;
-                        if (_blockSplitFlag[gr][ch])
+                        //   block_type[gr][ch]              2
+                        _blockType[gr][ch] = frame.ReadBits(2);
+                        //   switch_point[gr][ch]            1
+                        _mixedBlockFlag[gr][ch] = frame.ReadBits(1) == 1;
+                        //   table_select[gr][ch][0..1]      5 x2
+                        _tableSelect[gr][ch][0] = frame.ReadBits(5);
+                        _tableSelect[gr][ch][1] = frame.ReadBits(5);
+                        _tableSelect[gr][ch][2] = 0;
+                        // set the region information
+                        if (_blockType[gr][ch] == 2 && !_mixedBlockFlag[gr][ch])
                         {
-                            //   block_type[gr][ch]              2
-                            _blockType[gr][ch] = frame.ReadBits(2);
-                            //   switch_point[gr][ch]            1
-                            _mixedBlockFlag[gr][ch] = frame.ReadBits(1) == 1;
-                            //   table_select[gr][ch][0..1]      5 x2
-                            _tableSelect[gr][ch][0] = frame.ReadBits(5);
-                            _tableSelect[gr][ch][1] = frame.ReadBits(5);
-                            _tableSelect[gr][ch][2] = 0;
-                            // set the region information
-                            if (_blockType[gr][ch] == 2 && !_mixedBlockFlag[gr][ch])
-                            {
-                                _regionAddress1[gr][ch] = 8;
-                            }
-                            else
-                            {
-                                _regionAddress1[gr][ch] = 7;
-                            }
-                            _regionAddress2[gr][ch] = 20 - _regionAddress1[gr][ch];
-                            //   subblock_gain[gr][ch][0..2]     3 x3
-                            _subblockGain[gr][ch][0] = frame.ReadBits(3) * -2f;
-                            _subblockGain[gr][ch][1] = frame.ReadBits(3) * -2f;
-                            _subblockGain[gr][ch][2] = frame.ReadBits(3) * -2f;
+                            _regionAddress1[gr][ch] = 8;
                         }
                         else
                         {
-                            //   table_select[0..2][gr][ch]      5 x3
-                            _tableSelect[gr][ch][0] = frame.ReadBits(5);
-                            _tableSelect[gr][ch][1] = frame.ReadBits(5);
-                            _tableSelect[gr][ch][2] = frame.ReadBits(5);
-                            //   region_address1[gr][ch]         4
-                            _regionAddress1[gr][ch] = frame.ReadBits(4);
-                            //   region_address2[gr][ch]         3
-                            _regionAddress2[gr][ch] = frame.ReadBits(3);
-                            // set the block type so it doesn't accidentally carry
-                            _blockType[gr][ch] = 0;
-
-                            // make subblock gain equal unity
-                            _subblockGain[gr][ch][0] = 0;
-                            _subblockGain[gr][ch][1] = 0;
-                            _subblockGain[gr][ch][2] = 0;
+                            _regionAddress1[gr][ch] = 7;
                         }
-                        // scalefac_scale[gr][ch]        1
-                        _scalefacScale[gr][ch] = .5f * (1f + frame.ReadBits(1));
-                        // count1table_select[gr][ch]    1
-                        _count1TableSelect[gr][ch] = frame.ReadBits(1);
+                        _regionAddress2[gr][ch] = 20 - _regionAddress1[gr][ch];
+                        //   subblock_gain[gr][ch][0..2]     3 x3
+                        _subblockGain[gr][ch][0] = frame.ReadBits(3) * -2f;
+                        _subblockGain[gr][ch][1] = frame.ReadBits(3) * -2f;
+                        _subblockGain[gr][ch][2] = frame.ReadBits(3) * -2f;
                     }
+                    else
+                    {
+                        //   table_select[0..2][gr][ch]      5 x3
+                        _tableSelect[gr][ch][0] = frame.ReadBits(5);
+                        _tableSelect[gr][ch][1] = frame.ReadBits(5);
+                        _tableSelect[gr][ch][2] = frame.ReadBits(5);
+                        //   region_address1[gr][ch]         4
+                        _regionAddress1[gr][ch] = frame.ReadBits(4);
+                        //   region_address2[gr][ch]         3
+                        _regionAddress2[gr][ch] = frame.ReadBits(3);
+                        // set the block type so it doesn't accidentally carry
+                        _blockType[gr][ch] = 0;
+
+                        // make subblock gain equal unity
+                        _subblockGain[gr][ch][0] = 0;
+                        _subblockGain[gr][ch][1] = 0;
+                        _subblockGain[gr][ch][2] = 0;
+                    }
+                    // scalefac_scale[gr][ch]        1
+                    _scalefacScale[gr][ch] = .5f * (1f + frame.ReadBits(1));
+                    // count1table_select[gr][ch]    1
+                    _count1TableSelect[gr][ch] = frame.ReadBits(1);
                 }
             }
         }
@@ -1827,7 +1825,7 @@ namespace NLayer.Decoder
         #region Variables
 
         float[] _reorderBuf = new float[SBLIMIT * SSLIMIT];
-        
+
         #endregion
 
         void Reorder(float[] buf, bool mixedBlock)
