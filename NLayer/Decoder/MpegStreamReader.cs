@@ -631,7 +631,7 @@ namespace NLayer.Decoder
             // first try to "seek" by calculating the frame number
             var cnt = (int)(sampleNumber / _first.SampleCount);
             var frame = _first;
-            if (_current.Number <= cnt && _current.SampleOffset <= sampleNumber)
+            if (_current != null && _current.Number <= cnt && _current.SampleOffset <= sampleNumber)
             {
                 // if this fires, we can short-circuit things a bit...
                 frame = _current;
