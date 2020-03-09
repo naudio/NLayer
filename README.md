@@ -1,4 +1,4 @@
-# Nlayer
+# NLayer
 
 NLayer is a fully managed MP3 to WAV decoder. The code was originally based 
 on [JavaLayer](http://www.javazoom.net/javalayer/javalayer.html) (v1.0.1), 
