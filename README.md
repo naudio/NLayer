@@ -18,10 +18,11 @@ using NLayer;
 Then create an `MpegFile`, pass a file name or a stream to the constructor, and use `ReadSamples` for decoding the content:
 
 ```cs
+const int readBufferSize = 44100; // 1 second for mono
 var fileName = "myMp3File.mp3";
 var mpegFile = new MpegFile(filename);
-float[] samples = new float[44100];
-mpegFile.ReadSamples(samples, 0, 44100);
+float[] samples = new float[readBufferSize];
+int readCount = mpegFile.ReadSamples(samples, 0, readBufferSize);
 ```
 
 More information could be found in code documents.
