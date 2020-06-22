@@ -74,7 +74,7 @@ namespace NLayer
 
         /// <summary>
         /// Decode the Mpeg frame into provided buffer.
-        /// Result varies with diffirent <see cref="StereoMode"/>:
+        /// Result varies with different <see cref="StereoMode"/>:
         /// <list type="bullet">
         /// <item>
         /// <description>For <see cref="NLayer.StereoMode.Both"/>, sample data on both two channels will occur in turn (left first).</description>
