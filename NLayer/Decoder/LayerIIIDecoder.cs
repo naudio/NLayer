@@ -1385,21 +1385,14 @@ namespace NLayer.Decoder
             h = _count1TableSelect[gr][ch] + 32;
 
             float v, w;
-            while (part3end > _bitRes.BitsRead && idx < SBLIMIT * SSLIMIT)
+            // - 3 to ensure that we never get an out of range exception
+            while (part3end > _bitRes.BitsRead && idx < SBLIMIT * SSLIMIT - 3)
             {
                 Huffman.Decode(_bitRes, h, out x, out y, out v, out w);
-                _samples[ch][idx] = Dequantize(idx, v, gr, ch);
-                if (idx < (SBLIMIT * SSLIMIT) - 1)
-                    ++idx;
-                _samples[ch][idx] = Dequantize(idx, w, gr, ch);
-                if (idx < (SBLIMIT * SSLIMIT) - 1)
-                    ++idx;
-                _samples[ch][idx] = Dequantize(idx, x, gr, ch);
-                if (idx < (SBLIMIT * SSLIMIT) - 1)
-                    ++idx;
-                _samples[ch][idx] = Dequantize(idx, y, gr, ch);
-                if (idx < (SBLIMIT * SSLIMIT) - 1)
-                    ++idx;
+                _samples[ch][idx] = Dequantize(idx, v, gr, ch); ++idx;
+                _samples[ch][idx] = Dequantize(idx, w, gr, ch); ++idx;
+                _samples[ch][idx] = Dequantize(idx, x, gr, ch); ++idx;
+                _samples[ch][idx] = Dequantize(idx, y, gr, ch); ++idx;
             }
 
             // adjust the bit stream if we're off somehow
