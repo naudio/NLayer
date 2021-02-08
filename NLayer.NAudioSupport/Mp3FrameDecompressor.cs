@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
-namespace NLayer.NAudioSupport
+﻿namespace NLayer.NAudioSupport
 {
     public class Mp3FrameDecompressor : NAudio.Wave.IMp3FrameDecompressor
     {

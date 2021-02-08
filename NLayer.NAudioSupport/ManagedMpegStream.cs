@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using NAudio.Wave;
 using System.IO;
 
@@ -15,7 +12,7 @@ namespace NLayer.NAudioSupport
         bool _closeOnDispose;
 
         public ManagedMpegStream(string fileName)
-            : this(System.IO.File.OpenRead(fileName), true)
+            : this(File.OpenRead(fileName), true)
         {
 
         }

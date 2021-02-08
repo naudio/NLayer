@@ -1,15 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using NAudio.Wave;
+using System;
 
 namespace NLayer.NAudioSupport
 {
     class Mp3FrameWrapper : IMpegFrame
     {
-        NAudio.Wave.Mp3Frame _frame;
+        Mp3Frame _frame;
 
-        internal NAudio.Wave.Mp3Frame WrappedFrame
+        internal Mp3Frame WrappedFrame
         {
             set
             {

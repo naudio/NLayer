@@ -20,7 +20,8 @@ namespace TestApp
             ofd.Filter = "MP3 Files|*.mp3";
             if (ofd.ShowDialog() == DialogResult.OK)
             {
-                using (var stream = new Mp3FileReader(ofd.FileName, waveFormat => new Mp3FrameDecompressor(waveFormat)))
+                // Mp3FileReaderBase is the full class, but you have to pass in a decoder
+                using (var stream = new Mp3FileReaderBase(ofd.FileName, waveFormat => new Mp3FrameDecompressor(waveFormat)))
                 {
                     string fileName = Path.GetFileNameWithoutExtension(ofd.FileName) + ".wav";
                     fileName = Path.Combine(Path.GetTempPath(), fileName);
