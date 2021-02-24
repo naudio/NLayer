@@ -284,5 +284,116 @@ namespace NLayer
             }
             return cnt;
         }
+
+
+        public int ReadSamplesInt16(byte[] buffer, int index, int count)
+        {
+            if (index < 0 || index + count > buffer.Length * sizeof(short)) throw new ArgumentOutOfRangeException("index");
+
+            return ReadSamplesIntImpl(buffer, index, count, 16) * sizeof(short) / sizeof(float);
+        }
+
+        public int ReadSamplesInt8(byte[] buffer, int index, int count)
+        {
+            if (index < 0 || index + count > buffer.Length * sizeof(float)) throw new ArgumentOutOfRangeException("index");
+
+            return ReadSamplesIntImpl(buffer, index, count, 8) * sizeof(byte) / sizeof(float);
+        }
+
+        int ReadSamplesIntImpl(byte[] buffer, int index, int count, int bitDepth)
+        {
+            var cnt = 0;
+
+            // lock around the entire read operation so seeking doesn't bork our buffers as we decode
+            lock (_seekLock)
+            {
+                while (count > 0)
+                {
+                    if (_readBufLen > _readBufOfs)
+                    {
+                        // we have bytes in the buffer, so copy them first
+                        var temp = _readBufLen - _readBufOfs;
+                        if (temp > count) temp = count;
+                        for (int i = 0; i < temp / sizeof(float); i++)
+                        {
+                            switch (bitDepth)
+                            {
+                                case 8:
+                                    buffer[index / sizeof(float) + i] = (byte)Math.Round(127.5f * _readBuf[_readBufOfs / sizeof(float) + i] + 127.5f);
+                                    break;
+                                case 16:
+                                    var value = (int)Math.Round(32767.5f * _readBuf[_readBufOfs / sizeof(float) + i] - 0.5f);
+                                    if (value < 0) {
+                                        value += 65536;
+                                    }
+
+                                    buffer[2 * (index / sizeof(float) + i)] = (byte)(value % 256);
+                                    buffer[2 * (index / sizeof(float) + i) + 1] = (byte)(value / 256);
+
+                                    break;
+                            }
+                        }
+
+                        // now update our counters...
+                        cnt += temp;
+
+                        count -= temp;
+                        index += temp;
+
+                        _position += temp;
+                        _readBufOfs += temp;
+
+                        // finally, mark the buffer as empty if we've read everything in it
+                        if (_readBufOfs == _readBufLen)
+                        {
+                            _readBufLen = 0;
+                        }
+                    }
+
+                    // if the buffer is empty, try to fill it
+                    //  NB: If we've already satisfied the read request, we'll still try to fill the buffer.
+                    //      This ensures there's data in the pipe on the next call
+                    if (_readBufLen == 0)
+                    {
+                        if (_eofFound)
+                        {
+                            break;
+                        }
+
+                        // decode the next frame (update _readBufXXX)
+                        var frame = _reader.NextFrame();
+                        if (frame == null)
+                        {
+                            _eofFound = true;
+                            break;
+                        }
+
+                        try
+                        {
+                            _readBufLen = _decoder.DecodeFrame(frame, _readBuf, 0) * sizeof(float);
+                            _readBufOfs = 0;
+                        }
+                        catch (System.IO.InvalidDataException)
+                        {
+                            // bad frame...  try again...
+                            _decoder.Reset();
+                            _readBufOfs = _readBufLen = 0;
+                            continue;
+                        }
+                        catch (System.IO.EndOfStreamException)
+                        {
+                            // no more frames
+                            _eofFound = true;
+                            break;
+                        }
+                        finally
+                        {
+                            frame.ClearBuffer();
+                        }
+                    }
+                }
+            }
+            return cnt;
+        }
     }
 }
