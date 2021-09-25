@@ -54,7 +54,7 @@ namespace NLayer.Decoder
                 // otherwise, just set start to match the start of the frame (we probably skipped a frame)
                 else
                 {
-                    _start = originalEnd;
+                    _start = originalEnd + overlap;
                     return false;
                 }
             }
