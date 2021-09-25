@@ -48,6 +48,9 @@ namespace NLayer.Decoder
                         byte flagsMask;
                         switch (buf[0])
                         {
+                            case 2:
+                                flagsMask = 0x3F;
+                                break;
                             case 3:
                                 flagsMask = 0x1F;
                                 break;
