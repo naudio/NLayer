@@ -173,7 +173,7 @@ namespace NLayer
             // make sure we're asking for an even number of samples
             count -= (count % sizeof(float));
 
-            return ReadSamplesImpl(buffer, index, count);
+            return ReadSamplesImpl(buffer, index, count, 32);
         }
 
         /// <summary>
@@ -201,13 +201,27 @@ namespace NLayer
             if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
 
             // ReadSampleImpl "thinks" in bytes, so adjust accordingly
-            return ReadSamplesImpl(buffer, index * sizeof(float), count * sizeof(float)) / sizeof(float);
+            return ReadSamplesImpl(buffer, index * sizeof(float), count * sizeof(float), 32) / sizeof(float);
+        }
+
+        public int ReadSamplesInt16(byte[] buffer, int index, int count)
+        {
+            if (index < 0 || index + count > buffer.Length * sizeof(short)) throw new ArgumentOutOfRangeException("index");
+
+            return ReadSamplesImpl(buffer, index, count, 16) * sizeof(short) / sizeof(float);
+        }
+
+        public int ReadSamplesInt8(byte[] buffer, int index, int count)
+        {
+            if (index < 0 || index + count > buffer.Length * sizeof(float)) throw new ArgumentOutOfRangeException("index");
+
+            return ReadSamplesImpl(buffer, index, count, 8) * sizeof(byte) / sizeof(float);
         }
 
         float[] _readBuf = new float[1152 * 2];
         int _readBufLen, _readBufOfs;
 
-        int ReadSamplesImpl(Array buffer, int index, int count)
+        int ReadSamplesImpl(Array buffer, int index, int count, int bitDepth)
         {
             var cnt = 0;
 
@@ -221,7 +235,32 @@ namespace NLayer
                         // we have bytes in the buffer, so copy them first
                         var temp = _readBufLen - _readBufOfs;
                         if (temp > count) temp = count;
-                        Buffer.BlockCopy(_readBuf, _readBufOfs, buffer, index, temp);
+                        if (bitDepth == 32)
+                        {
+                            Buffer.BlockCopy(_readBuf, _readBufOfs, buffer, index, temp);
+                        }
+                        else
+                        {
+                            for (int i = 0; i < temp / sizeof(float); i++)
+                            {
+                                switch (bitDepth)
+                                {
+                                    case 8:
+                                        buffer.SetValue((byte)Math.Round(127.5f * _readBuf[_readBufOfs / sizeof(float) + i] + 127.5f), index / sizeof(float) + i);
+                                        break;
+                                    case 16:
+                                        var value = (int)Math.Round(32767.5f * _readBuf[_readBufOfs / sizeof(float) + i] - 0.5f);
+                                        if (value < 0) {
+                                            value += 65536;
+                                        }
+    
+                                        buffer.SetValue((byte)(value % 256), 2 * (index / sizeof(float) + i));
+                                        buffer.SetValue((byte)(value / 256), 2 * (index / sizeof(float) + i) + 1);
+    
+                                        break;
+                                }
+                            }
+                        }
 
                         // now update our counters...
                         cnt += temp;
