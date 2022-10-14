@@ -45,7 +45,7 @@ Then create an `Mp3FileReader`, passing in a `FrameDecompressorBuilder` that use
 ```cs
 var fileName = "myMp3File.mp3";
 var builder = new Mp3FileReader.FrameDecompressorBuilder(wf => new Mp3FrameDecompressor(wf));
-var reader = new Mp3FileReader(fileName, builder);
+var reader = new Mp3FileReaderBase(fileName, builder);
 // play or process the file, e.g.:
 waveOut.Init(reader);
 waveOut.Play();
