@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Mark Heath</Authors>
-    <Version>1.3.0</Version>
+    <Version>1.4.0</Version>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/naudio/NLayer</PackageProjectUrl>
     <Description>NAudio support for NLayer</Description>

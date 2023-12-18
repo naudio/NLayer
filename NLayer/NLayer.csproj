@@ -4,7 +4,7 @@
     <TargetFrameworks>netstandard1.3</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Mark Heath, Andrew Ward</Authors>
-    <Version>1.14.0</Version>
+    <Version>1.15.0</Version>
 	<PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/naudio/NLayer</PackageProjectUrl>
     <Description>Fully Managed MPEG 1 &amp; 2 Decoder for Layers 1, 2, &amp; 3</Description>
