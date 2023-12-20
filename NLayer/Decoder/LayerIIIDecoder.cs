@@ -1766,8 +1766,8 @@ namespace NLayer.Decoder
 
         void ApplyLsfIStereo(int i, int sb, int isPos, int scalefacCompress)
         {
-            var k0 = _lsfRatio[scalefacCompress % 1][isPos][0];
-            var k1 = _lsfRatio[scalefacCompress % 1][isPos][1];
+            var k0 = _lsfRatio[scalefacCompress % 2][0][isPos];
+            var k1 = _lsfRatio[scalefacCompress % 2][1][isPos];
             if (StereoMode == NLayer.StereoMode.DownmixToMono)
             {
                 var ratio = 1 / (k0 + k1);
