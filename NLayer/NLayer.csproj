@@ -9,7 +9,11 @@
     <PackageProjectUrl>https://github.com/naudio/NLayer</PackageProjectUrl>
     <Description>Fully Managed MPEG 1 &amp; 2 Decoder for Layers 1, 2, &amp; 3</Description>
     <PackageTags>audio csharp mp3</PackageTags>
+	<PackageReadmeFile>README.md</PackageReadmeFile>
     <Company />
   </PropertyGroup>
 
+	<ItemGroup>
+		<None Include="..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 </Project>
