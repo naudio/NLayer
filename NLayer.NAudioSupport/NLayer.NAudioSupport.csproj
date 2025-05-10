@@ -4,17 +4,27 @@
     <TargetFrameworks>netstandard2.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Mark Heath</Authors>
-    <Version>1.4.0</Version>
+    <Version>1.4.1</Version>
     <PackageLicenseUrl></PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/naudio/NLayer</PackageProjectUrl>
+	<RepositoryUrl>https://github.com/naudio/NLayer</RepositoryUrl>
     <Description>NAudio support for NLayer</Description>
     <PackageTags>NAudio NLayer MP3 audio</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="NAudio.Core" Version="2.0.0" />
   </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\NLayer\NLayer.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
   </ItemGroup>
 </Project>
