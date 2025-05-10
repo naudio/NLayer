@@ -1,15 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard1.3</TargetFrameworks>
+    <TargetFrameworks>netstandard1.3;netstandard2.0</TargetFrameworks>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Mark Heath, Andrew Ward</Authors>
-    <Version>1.15.1</Version>
-	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <Version>1.16.0</Version>
+	  <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/naudio/NLayer</PackageProjectUrl>
-	<RepositoryUrl>https://github.com/naudio/NLayer</RepositoryUrl>
+	  <RepositoryUrl>https://github.com/naudio/NLayer</RepositoryUrl>
     <Description>Fully Managed MPEG 1 &amp; 2 Decoder for Layers 1, 2, &amp; 3</Description>
     <PackageTags>audio csharp mp3</PackageTags>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
     <Company />
   </PropertyGroup>
 
@@ -20,4 +21,7 @@
     </PackageReference>
   </ItemGroup>
 
+	<ItemGroup>
+		<None Include="..\README.md" Pack="true" PackagePath="\" />
+	</ItemGroup>
 </Project>
