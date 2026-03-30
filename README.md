@@ -1,8 +1,6 @@
 # NLayer
 
-NLayer is a fully managed MP3 to WAV decoder. The code was originally based 
-on [JavaLayer](http://www.javazoom.net/javalayer/javalayer.html) (v1.0.1), 
-which has been ported to C#.
+NLayer is a fully managed, MIT-licensed MP3 to WAV decoder implemented in C# based on the MPEG specifications.
 
 Was previously hosted at [nlayer.codeplex.com](http://nlayer.codeplex.com/). 
 Please see the history there for full details of contributors.
