@@ -1552,7 +1552,7 @@ namespace NLayer.Decoder
                         var i = _sfBandIndexL[sfb];
                         var width = _sfBandIndexL[sfb + 1] - _sfBandIndexL[sfb];
                         var isPos = _scalefac[1][3][sfb];
-                        if (isPos == 7)
+                        if (isPos >= 7)
                         {
                             if (midSide)
                             {
@@ -1577,7 +1577,7 @@ namespace NLayer.Decoder
                     {
                         // do final long processing
                         var isPos = _scalefac[1][3][20];
-                        if (isPos == 7)
+                        if (isPos >= 7)
                         {
                             if (midSide)
                             {
@@ -1663,7 +1663,7 @@ namespace NLayer.Decoder
                                 if (sfb > sSfb[window])
                                 {
                                     var isPos = _scalefac[1][window][sfb];
-                                    if (isPos == 7)
+                                    if (isPos >= 7)
                                     {
                                         if (midSide)
                                         {
@@ -1701,7 +1701,7 @@ namespace NLayer.Decoder
                         for (window = 0; window < 3; window++)
                         {
                             var isPos = _scalefac[1][window][11];
-                            if (isPos == 7)
+                            if (isPos >= 7)
                             {
                                 if (midSide)
                                 {
