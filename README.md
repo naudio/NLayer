@@ -2,9 +2,6 @@
 
 NLayer is a fully managed, MIT-licensed MP3 to WAV decoder implemented in C# based on the MPEG specifications.
 
-Was previously hosted at [nlayer.codeplex.com](http://nlayer.codeplex.com/). 
-Please see the history there for full details of contributors.
-
 ## Usage
 
 To use NLayer for decoding MP3, first reference NLayer.
