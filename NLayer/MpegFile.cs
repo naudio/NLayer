@@ -12,6 +12,8 @@ namespace NLayer
 
         object _seekLock = new object();
         long _position;
+        int _encoderDelay, _encoderPadding;
+        bool _decoderDelaySkipped;
 
         /// <summary>
         /// Construct Mpeg file representation from filename.
@@ -39,6 +41,9 @@ namespace NLayer
             _reader = new Decoder.MpegStreamReader(_stream);
 
             _decoder = new MpegFrameDecoder();
+
+            _encoderDelay = _reader.EncoderDelay;
+            _encoderPadding = _reader.EncoderPadding;
         }
 
         /// <summary>
@@ -70,7 +75,15 @@ namespace NLayer
         /// <summary>
         /// Data length of decoded data, in PCM.
         /// </summary>
-        public long Length { get { return _reader.SampleCount * _reader.Channels * sizeof(float); } }
+        public long Length
+        {
+            get
+            {
+                var count = _reader.SampleCount;
+                if (count < 0) return -1;
+                return (count - _encoderDelay - _encoderPadding) * _reader.Channels * sizeof(float);
+            }
+        }
 
         /// <summary>
         /// Media duration of the Mpeg file.
@@ -81,8 +94,30 @@ namespace NLayer
             {
                 var len = _reader.SampleCount;
                 if (len == -1) return TimeSpan.Zero;
-                return TimeSpan.FromSeconds((double)len / _reader.SampleRate);
+                return TimeSpan.FromSeconds((double)(len - _encoderDelay - _encoderPadding) / _reader.SampleRate);
             }
+        }
+
+        /// <summary>
+        /// Number of samples of encoder delay at the start of the stream (from LAME header).
+        /// These samples are automatically skipped during decoding.
+        /// Can be set manually for files without a LAME header.
+        /// </summary>
+        public int EncoderDelay
+        {
+            get { return _encoderDelay; }
+            set { _encoderDelay = value; }
+        }
+
+        /// <summary>
+        /// Number of padding samples at the end of the stream (from LAME header).
+        /// These samples are automatically trimmed during decoding.
+        /// Can be set manually for files without a LAME header.
+        /// </summary>
+        public int EncoderPadding
+        {
+            get { return _encoderPadding; }
+            set { _encoderPadding = value; }
         }
 
         /// <summary>
@@ -124,6 +159,7 @@ namespace NLayer
 
                     _position = newPos * sizeof(float) * _reader.Channels;
                     _eofFound = false;
+                    _decoderDelaySkipped = (newPos > 0 || _encoderDelay == 0);
 
                     // clear the decoder & buffer
                     _readBufOfs = _readBufLen = 0;
@@ -225,16 +261,32 @@ namespace NLayer
         {
             var cnt = 0;
 
+            // Total logical bytes of real audio (excludes encoder delay and end padding)
+            var rawSampleCount = _reader.SampleCount;
+            var totalBytes = rawSampleCount >= 0 ? (rawSampleCount - _encoderDelay - _encoderPadding) * _reader.Channels * sizeof(float) : long.MaxValue;
+
             // lock around the entire read operation so seeking doesn't bork our buffers as we decode
             lock (_seekLock)
             {
                 while (count > 0)
                 {
+                    // Trim end padding: stop once we've delivered all real audio
+                    if (_position >= totalBytes)
+                    {
+                        _eofFound = true;
+                        break;
+                    }
+
                     if (_readBufLen > _readBufOfs)
                     {
                         // we have bytes in the buffer, so copy them first
                         var temp = _readBufLen - _readBufOfs;
                         if (temp > count) temp = count;
+
+                        // Don't deliver past the logical end
+                        var remaining = (int)(totalBytes - _position);
+                        if (temp > remaining) temp = remaining;
+
                         if (bitDepth == 32)
                         {
                             Buffer.BlockCopy(_readBuf, _readBufOfs, buffer, index, temp);
@@ -300,6 +352,22 @@ namespace NLayer
                         {
                             _readBufLen = _decoder.DecodeFrame(frame, _readBuf, 0) * sizeof(float);
                             _readBufOfs = 0;
+
+                            // Skip encoder delay samples at the start of the stream
+                            if (!_decoderDelaySkipped)
+                            {
+                                var skipBytes = _encoderDelay * _reader.Channels * sizeof(float);
+                                if (skipBytes > 0 && skipBytes <= _readBufLen)
+                                {
+                                    _readBufOfs = skipBytes;
+                                }
+                                _decoderDelaySkipped = true;
+                                // If delay exhausted the entire buffer, mark it empty so we refill next iteration
+                                if (_readBufOfs >= _readBufLen)
+                                {
+                                    _readBufLen = _readBufOfs = 0;
+                                }
+                            }
                         }
                         catch (System.IO.InvalidDataException)
                         {

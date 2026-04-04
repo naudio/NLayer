@@ -319,27 +319,25 @@ namespace NLayer.Decoder
                 info.VBRQuality = buf[0] << 24 | buf[1] << 16 | buf[2] << 8 | buf[3];
             }
 
-            //// now look for a LAME header (note: if it isn't found, it doesn't fail the VBR parse)
-            //do
-            //{
-            //    if (Read(offset, buf, 0, 20) != 20) break;
-            //    offset += 20;
+            // now look for a LAME header (note: if it isn't found, it doesn't fail the VBR parse)
+            do
+            {
+                // LAME tag is 9 bytes identifier + 27 bytes of data = 36 bytes total
+                // We need at least 24 bytes to reach the delay/padding field
+                if (Read(offset, buf, 0, 24) != 24) break;
 
-            //    // LAME tag revision: only 0 and 1 are valid
-            //    if ((buf[9] & 0xF0) > 0x10) break;
+                // "LAME" identifier (first 4 bytes)
+                if (buf[0] != 'L' || buf[1] != 'A' || buf[2] != 'M' || buf[3] != 'E') break;
 
-            //    // VBR mode: 0-6, 8 & 9 are valid
-            //    var mode = buf[9] & 0xF;
-            //    if (mode == 7 || mode > 9) break;
+                // Info tag revision (high nibble of byte 9): only 0 and 1 are valid
+                if ((buf[9] & 0xF0) > 0x10) break;
 
-            //    // Lowpass filter value
-            //    var lowpass = buf[10] / 100.0;
-
-            //    // Replay Gain
-            //    var rgPeak = BitConverter.ToSingle(buf, 11);
-            //    var rgGainRadio = buf[15] << 8 | buf[16];
-            //    var rgGain = buf[17] << 8 | buf[18];
-            //} while (false);
+                // Encoder delay and end padding are packed into bytes 21-23:
+                //   encoder_delay  = high 12 bits
+                //   end_padding    = low  12 bits
+                info.EncoderDelay   = (buf[21] << 4) | (buf[22] >> 4);
+                info.EncoderPadding = ((buf[22] & 0x0F) << 8) | buf[23];
+            } while (false);
 
             return info;
         }
