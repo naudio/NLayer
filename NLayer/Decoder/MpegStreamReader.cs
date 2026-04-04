@@ -600,6 +600,16 @@ namespace NLayer.Decoder
             }
         }
 
+        internal int EncoderDelay
+        {
+            get { return _vbrInfo != null ? _vbrInfo.EncoderDelay : 0; }
+        }
+
+        internal int EncoderPadding
+        {
+            get { return _vbrInfo != null ? _vbrInfo.EncoderPadding : 0; }
+        }
+
         internal int SampleRate
         {
             get
