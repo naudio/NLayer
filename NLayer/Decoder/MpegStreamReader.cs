@@ -26,6 +26,11 @@ namespace NLayer.Decoder
 
             // find the first Mpeg frame
             var frame = FindNextFrame();
+
+            // Parse the ID3 tag now while the ReadBuffer is still near the start of the file.
+            // iTunSMPB gapless data must be read eagerly; backward seeks via ReadBuffer are unreliable.
+            _id3Frame?.ParseEagerIfNeeded();
+
             while (frame != null && !(frame is MpegFrame))
             {
                 frame = FindNextFrame();
@@ -602,12 +607,22 @@ namespace NLayer.Decoder
 
         internal int EncoderDelay
         {
-            get { return _vbrInfo != null ? _vbrInfo.EncoderDelay : 0; }
+            get
+            {
+                if (_vbrInfo != null && _vbrInfo.EncoderDelay > 0) return _vbrInfo.EncoderDelay;
+                if (_id3Frame != null) return _id3Frame.EncoderDelay;
+                return 0;
+            }
         }
 
         internal int EncoderPadding
         {
-            get { return _vbrInfo != null ? _vbrInfo.EncoderPadding : 0; }
+            get
+            {
+                if (_vbrInfo != null && _vbrInfo.EncoderPadding > 0) return _vbrInfo.EncoderPadding;
+                if (_id3Frame != null) return _id3Frame.EncoderPadding;
+                return 0;
+            }
         }
 
         internal int SampleRate
