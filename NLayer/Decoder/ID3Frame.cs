@@ -171,10 +171,113 @@ namespace NLayer.Decoder
             //}
         }
 
+        int _encoderDelay = -1;
+        int _encoderPadding = -1;
+        bool _v2Parsed;
+
         void ParseV2()
         {
-            // v2 is much more complicated than v1...  don't worry about it for now
-            // look for any merged frames, as well
+            _v2Parsed = true;
+            _encoderDelay = 0;
+            _encoderPadding = 0;
+
+            // Read version byte to determine frame size encoding
+            var header = new byte[7];
+            if (Read(3, header) != 7) return;
+
+            int majorVersion = header[0];
+            if (majorVersion != 3 && majorVersion != 4) return;
+
+            // Tag content size (syncsafe integer, 7 bits per byte)
+            int tagSize = (header[3] << 21) | (header[4] << 14) | (header[5] << 7) | header[6];
+
+            // Walk ID3v2 frames looking for TXXX "iTunSMPB"
+            int pos = 10; // skip 10-byte tag header
+            var frameBuf = new byte[10];
+            while (pos < tagSize + 10)
+            {
+                if (Read(pos, frameBuf, 0, 10) < 10) break;
+
+                // Frame ID: 4 ASCII bytes; null means padding, stop
+                if (frameBuf[0] == 0) break;
+
+                // Frame size: plain 32-bit in v2.3, syncsafe in v2.4
+                int frameSize;
+                if (majorVersion == 4)
+                    frameSize = (frameBuf[4] << 21) | (frameBuf[5] << 14) | (frameBuf[6] << 7) | frameBuf[7];
+                else
+                    frameSize = (frameBuf[4] << 24) | (frameBuf[5] << 16) | (frameBuf[6] << 8) | frameBuf[7];
+
+                if (frameSize <= 0) break;
+
+                bool isTxxx = frameBuf[0] == 'T' && frameBuf[1] == 'X' && frameBuf[2] == 'X' && frameBuf[3] == 'X';
+                if (isTxxx && frameSize < 4096)
+                {
+                    var data = new byte[frameSize];
+                    if (Read(pos + 10, data, 0, frameSize) == frameSize)
+                        TryParseITunSMPB(data, frameSize);
+                }
+
+                if (_encoderDelay > 0 || _encoderPadding > 0) break; // found it, stop scanning
+
+                pos += 10 + frameSize;
+            }
+        }
+
+        void TryParseITunSMPB(byte[] data, int length)
+        {
+            if (length < 2) return;
+            int enc = data[0];
+
+            // Decode entire frame content (description + NUL + value) as a string
+            string fullText;
+            try
+            {
+                Encoding encoding = (enc == 1 || enc == 2) ? Encoding.Unicode : Encoding.UTF8;
+                fullText = encoding.GetString(data, 1, length - 1);
+            }
+            catch { return; }
+
+            // Strip leading BOM if present
+            if (fullText.Length > 0 && fullText[0] == '\uFEFF')
+                fullText = fullText.Substring(1);
+
+            // Split on the NUL separator between description and value
+            int nullIdx = fullText.IndexOf('\0');
+            if (nullIdx < 0) return;
+
+            string desc = fullText.Substring(0, nullIdx);
+            if (desc != "iTunSMPB") return;
+
+            // Value: " 00000000 DELAY PADDING SAMPLECOUNT ..."
+            // UTF-16 frames carry a BOM before both the description and the value; strip it here too.
+            string value = fullText.Substring(nullIdx + 1).Trim('\0');
+            if (value.Length > 0 && value[0] == '\uFEFF')
+                value = value.Substring(1);
+            var parts = value.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 3) return;
+
+            if (int.TryParse(parts[1], System.Globalization.NumberStyles.HexNumber, null, out int delay) &&
+                int.TryParse(parts[2], System.Globalization.NumberStyles.HexNumber, null, out int padding))
+            {
+                _encoderDelay = delay;
+                _encoderPadding = padding;
+            }
+        }
+
+        internal void ParseEagerIfNeeded()
+        {
+            if (_version == 2 && !_v2Parsed) ParseV2();
+        }
+
+        internal int EncoderDelay
+        {
+            get { return _encoderDelay < 0 ? 0 : _encoderDelay; }
+        }
+
+        internal int EncoderPadding
+        {
+            get { return _encoderPadding < 0 ? 0 : _encoderPadding; }
         }
 
         internal int Version
