@@ -58,9 +58,16 @@ namespace NLayer
         public int SampleRate { get { return _reader.SampleRate; } }
 
         /// <summary>
-        /// Channel count of source Mpeg.
+        /// Channel count of decoded output. This is the source channel count for
+        /// <see cref="NLayer.StereoMode.Both"/>, but 1 for the single-channel modes
+        /// (<see cref="NLayer.StereoMode.LeftOnly"/>, <see cref="NLayer.StereoMode.RightOnly"/>
+        /// and <see cref="NLayer.StereoMode.DownmixToMono"/>).
         /// </summary>
-        public int Channels { get { return _reader.Channels; } }
+        public int Channels { get { return OutputChannels; } }
+
+        // The number of channels actually produced by ReadSamples, taking StereoMode into
+        // account. All of the byte/sample/position math below is in terms of output channels.
+        int OutputChannels { get { return StereoMode == StereoMode.Both ? _reader.Channels : 1; } }
 
         /// <summary>
         /// Whether the Mpeg stream supports seek operation.
@@ -70,7 +77,7 @@ namespace NLayer
         /// <summary>
         /// Data length of decoded data, in PCM.
         /// </summary>
-        public long Length { get { return _reader.SampleCount * _reader.Channels * sizeof(float); } }
+        public long Length { get { return _reader.SampleCount * OutputChannels * sizeof(float); } }
 
         /// <summary>
         /// Media duration of the Mpeg file.
@@ -97,7 +104,7 @@ namespace NLayer
                 if (value < 0L) throw new ArgumentOutOfRangeException("value");
 
                 // we're thinking in 4-byte samples, pcmStep interleaved...  adjust accordingly
-                var samples = value / sizeof(float) / _reader.Channels;
+                var samples = value / sizeof(float) / OutputChannels;
                 var sampleOffset = 0;
 
                 // seek to the frame preceding the one we want (unless we're seeking to the first frame)
@@ -122,7 +129,7 @@ namespace NLayer
                         newPos += sampleOffset;
                     }
 
-                    _position = newPos * sizeof(float) * _reader.Channels;
+                    _position = newPos * sizeof(float) * OutputChannels;
                     _eofFound = false;
 
                     // clear the decoder & buffer
@@ -136,7 +143,7 @@ namespace NLayer
         /// </summary>
         public TimeSpan Time
         {
-            get { return TimeSpan.FromSeconds((double)_position / sizeof(float) / _reader.Channels / _reader.SampleRate); }
+            get { return TimeSpan.FromSeconds((double)_position / sizeof(float) / OutputChannels / _reader.SampleRate); }
             set { Position = (long)(value.TotalSeconds * _reader.SampleRate * _reader.Channels * sizeof(float)); }
         }
 

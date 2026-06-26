@@ -6,12 +6,25 @@
         Mp3FrameWrapper _frame;
 
         public Mp3FrameDecompressor(NAudio.Wave.WaveFormat waveFormat)
+            : this(waveFormat, StereoMode.Both)
         {
-            // we assume waveFormat was calculated from the first frame already
-            OutputFormat = NAudio.Wave.WaveFormat.CreateIeeeFloatWaveFormat(waveFormat.SampleRate, waveFormat.Channels);
+        }
 
-            _decoder = new MpegFrameDecoder();
+        /// <param name="waveFormat">The source wave format (assumed to be calculated from the first frame already).</param>
+        /// <param name="stereoMode">
+        /// How stereo content is decoded. The single-channel modes
+        /// (<see cref="NLayer.StereoMode.LeftOnly"/>, <see cref="NLayer.StereoMode.RightOnly"/>
+        /// and <see cref="NLayer.StereoMode.DownmixToMono"/>) produce a mono
+        /// <see cref="OutputFormat"/>, so the mode must be supplied here (where the output
+        /// format is decided) rather than set afterwards.
+        /// </param>
+        public Mp3FrameDecompressor(NAudio.Wave.WaveFormat waveFormat, StereoMode stereoMode)
+        {
+            _decoder = new MpegFrameDecoder { StereoMode = stereoMode };
             _frame = new Mp3FrameWrapper();
+
+            var channels = stereoMode == StereoMode.Both ? waveFormat.Channels : 1;
+            OutputFormat = NAudio.Wave.WaveFormat.CreateIeeeFloatWaveFormat(waveFormat.SampleRate, channels);
         }
 
         public int DecompressFrame(NAudio.Wave.Mp3Frame frame, byte[] dest, int destOffset)
@@ -30,7 +43,6 @@
         public StereoMode StereoMode
         {
             get { return _decoder.StereoMode; }
-            set { _decoder.StereoMode = value; }
         }
 
         public void Reset()

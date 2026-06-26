@@ -73,6 +73,45 @@ namespace NLayer.Tests
             Assert.Equal(SilentMp3.Mpeg2.Channels, file.Channels);
         }
 
+        [Theory]
+        [InlineData(StereoMode.LeftOnly)]
+        [InlineData(StereoMode.RightOnly)]
+        [InlineData(StereoMode.DownmixToMono)]
+        public void Single_channel_stereo_modes_report_one_channel(StereoMode mode)
+        {
+            // Regression test for issue #5: the single-channel stereo modes used to leave
+            // Channels at 2 and emit interleaved output (with a silent/garbage second
+            // channel) for a stereo source. They should now produce genuine mono.
+            var data = SilentMp3.Create(10); // MPEG-1, 44.1 kHz, stereo
+            using var both = new MpegFile(new MemoryStream(data));
+            using var mono = new MpegFile(new MemoryStream(data)) { StereoMode = mode };
+
+            Assert.Equal(2, both.Channels);
+            Assert.Equal(1, mono.Channels);
+
+            // Same media duration, half the PCM bytes (one channel instead of two).
+            Assert.Equal(both.Duration, mono.Duration);
+            Assert.Equal(both.Length / 2, mono.Length);
+
+            var buffer = new float[4096];
+            long monoTotal = 0, bothTotal = 0;
+            int read;
+            while ((read = mono.ReadSamples(buffer, 0, buffer.Length)) > 0) monoTotal += read;
+            while ((read = both.ReadSamples(buffer, 0, buffer.Length)) > 0) bothTotal += read;
+
+            Assert.Equal(bothTotal / 2, monoTotal);
+        }
+
+        [Fact]
+        public void Default_stereo_mode_is_unchanged()
+        {
+            // The common case must be untouched by the issue #5 fix: a stereo source decodes
+            // to two interleaved channels exactly as before.
+            using var file = new MpegFile(new MemoryStream(SilentMp3.Create(10)));
+            Assert.Equal(StereoMode.Both, file.StereoMode);
+            Assert.Equal(2, file.Channels);
+        }
+
         [Fact]
         public void Backwards_seeks_stay_stable()
         {
