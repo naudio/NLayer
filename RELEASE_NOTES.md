@@ -20,7 +20,7 @@ section matching the version being shipped:
 - Reproducible, deterministic builds with SourceLink, embedded sources,
   symbol packages (`.snupkg`) and an SPDX SBOM in each package.
 - Packages now carry the `RepositoryUrl` and commit metadata (closes #31).
-- Assemblies are now strong-named.
+- Assemblies are now strong-named (closes #39).
 - Packages now use the shared NAudio-family icon.
 - Added GitHub Actions CI (build + test on every PR) and an automated
   release workflow (pre-release via dispatch, final release via `v*` tag)
