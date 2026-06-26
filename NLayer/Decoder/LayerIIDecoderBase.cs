@@ -115,6 +115,7 @@ namespace NLayer.Decoder
         int[][] _allocLookupTable, _scfsi, _samples;
         int[][][] _scalefac;
         float[] _polyPhaseBuf;
+        float[][] _chanBufs = new float[2][];
 
         int[][] _allocation;
 
@@ -315,7 +316,7 @@ namespace NLayer.Decoder
         int DecodeSamples(float[] ch0, float[] ch1)
         {
             // do our stereo mode setup
-            var chanBufs = new float[2][];
+            var chanBufs = _chanBufs;
             var startChannel = 0;
             var endChannel = _channels - 1;
             if (_channels == 1 || StereoMode == StereoMode.LeftOnly)
