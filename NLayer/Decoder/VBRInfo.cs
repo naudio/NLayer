@@ -11,6 +11,8 @@
         internal int VBRBytes { get; set; }
         internal int VBRQuality { get; set; }
         internal int VBRDelay { get; set; }
+        internal int EncoderDelay { get; set; }
+        internal int EncoderPadding { get; set; }
 
         internal long VBRStreamSampleCount
         {
