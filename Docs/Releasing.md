@@ -48,6 +48,26 @@ version.
 4. Run it. The workflow restores, builds, tests, packs both packages with the
    pre-release version, and pushes them (plus symbols) to NuGet.
 
+### …or from the command line
+
+You can trigger the same `workflow_dispatch` with the
+[GitHub CLI](https://cli.github.com/) instead of the web UI:
+
+```sh
+# Auto preview.<run_number>, e.g. 2.0.0-preview.42
+gh workflow run release.yml --ref master
+
+# Named milestone, e.g. 2.0.0-rc.1
+gh workflow run release.yml --ref master -f milestone=rc.1
+```
+
+`--ref master` is required — the workflow refuses to dispatch from any other
+branch. To watch the run you just started:
+
+```sh
+gh run watch $(gh run list --workflow=release.yml --limit 1 --json databaseId --jq '.[0].databaseId')
+```
+
 The `### Unreleased` section of `RELEASE_NOTES.md` is used for the package notes.
 No `git` tag and no GitHub Release are created for pre-releases.
 
