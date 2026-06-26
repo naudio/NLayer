@@ -174,7 +174,7 @@ namespace NLayer.Decoder
                                         else
                                         {
                                             // grrr...  the ID3 2.4 spec says tags can be anywhere in the file and that later tags can override earlier ones...  boo
-                                            ID3Frame.Merge(f);
+                                            _id3Frame.Merge(f);
                                         }
 
                                         _readOffset += f.Length;

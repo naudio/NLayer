@@ -197,9 +197,14 @@ namespace NLayer.Decoder
         //public TimeSpan StartTime { get; private set; }
         //public TimeSpan EndTime { get; private set; }
 
-        internal static void Merge(ID3Frame newFrame)
+        // TODO: ID3 2.4 allows later tags to override earlier ones. This is an
+        // unimplemented stub; when implemented it will merge newFrame's fields
+        // into this instance, so it is intentionally kept as an instance method.
+#pragma warning disable CA1822 // Mark members as static
+        internal void Merge(ID3Frame newFrame)
         {
             // just save off the frame for parsing later
         }
+#pragma warning restore CA1822
     }
 }
