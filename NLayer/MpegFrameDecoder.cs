@@ -150,10 +150,23 @@ namespace NLayer
                     // emit just that one channel rather than interleaving the (stale) _ch1.
                     Buffer.BlockCopy(_ch0, 0, dest, destOffset * sizeof(float), cnt * sizeof(float));
                 }
+                else if (dest is float[] floatDest)
+                {
+                    // Full stereo into a float[] - the dominant path (MpegFile's internal
+                    // buffer and the DecodeFrame(float[]) overload). Interleave by direct
+                    // element assignment instead of a four-byte Buffer.BlockCopy per sample
+                    // (which cost ~2,300 method calls per frame).
+                    for (int i = 0; i < cnt; i++)
+                    {
+                        floatDest[destOffset++] = _ch0[i];
+                        floatDest[destOffset++] = _ch1[i];
+                    }
+                    cnt *= 2;
+                }
                 else
                 {
-                    // Full stereo: interleave both channels.
-                    // We use Buffer.BlockCopy here because we don't know dest's type, but do know it's big enough to do the copy
+                    // Full stereo into a byte[] (the DecodeFrame(byte[]) overload): we don't
+                    // have a float view of dest, so copy each sample's raw bytes.
                     for (int i = 0; i < cnt; i++)
                     {
                         Buffer.BlockCopy(_ch0, i * sizeof(float), dest, destOffset * sizeof(float), sizeof(float));

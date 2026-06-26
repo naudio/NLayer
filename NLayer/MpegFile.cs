@@ -278,23 +278,36 @@ namespace NLayer
                         }
                         else
                         {
-                            for (int i = 0; i < temp / sizeof(float); i++)
+                            // 8- and 16-bit output always targets a byte[] (the public
+                            // ReadSamplesInt8/ReadSamplesInt16 overloads both take byte[]).
+                            // Cast once and index directly; the previous Array.SetValue(object,...)
+                            // calls boxed every byte written - one box per 8-bit sample, two per
+                            // 16-bit sample. The arithmetic below is unchanged, so output is
+                            // bit-for-bit identical.
+                            var byteBuffer = (byte[])buffer;
+                            var srcBase = _readBufOfs / sizeof(float);
+                            var dstBase = index / sizeof(float);
+                            var sampleCount = temp / sizeof(float);
+
+                            if (bitDepth == 8)
                             {
-                                switch (bitDepth)
+                                for (int i = 0; i < sampleCount; i++)
                                 {
-                                    case 8:
-                                        buffer.SetValue((byte)Math.Round(127.5f * _readBuf[_readBufOfs / sizeof(float) + i] + 127.5f), index / sizeof(float) + i);
-                                        break;
-                                    case 16:
-                                        var value = (int)Math.Round(32767.5f * _readBuf[_readBufOfs / sizeof(float) + i] - 0.5f);
-                                        if (value < 0) {
-                                            value += 65536;
-                                        }
-    
-                                        buffer.SetValue((byte)(value % 256), 2 * (index / sizeof(float) + i));
-                                        buffer.SetValue((byte)(value / 256), 2 * (index / sizeof(float) + i) + 1);
-    
-                                        break;
+                                    byteBuffer[dstBase + i] = (byte)Math.Round(127.5f * _readBuf[srcBase + i] + 127.5f);
+                                }
+                            }
+                            else // bitDepth == 16
+                            {
+                                for (int i = 0; i < sampleCount; i++)
+                                {
+                                    var value = (int)Math.Round(32767.5f * _readBuf[srcBase + i] - 0.5f);
+                                    if (value < 0)
+                                    {
+                                        value += 65536;
+                                    }
+
+                                    byteBuffer[2 * (dstBase + i)] = (byte)(value % 256);
+                                    byteBuffer[2 * (dstBase + i) + 1] = (byte)(value / 256);
                                 }
                             }
                         }
