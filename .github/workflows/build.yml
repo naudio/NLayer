@@ -1,0 +1,44 @@
+name: build
+
+# Build & test on every PR, every push to master, and on demand.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # windows-latest so the net8.0-windows TestApp (WinForms) builds too.
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        run: dotnet restore NLayer.sln
+
+      - name: Build
+        run: dotnet build NLayer.sln --configuration Release --no-restore
+
+      - name: Test
+        run: >
+          dotnet test NLayer.sln
+          --configuration Release
+          --no-build
+          --logger trx
+          --results-directory ${{ runner.temp }}/TestResults
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: ${{ runner.temp }}/TestResults/*.trx
+          if-no-files-found: warn

@@ -199,6 +199,21 @@ namespace NLayer.Decoder
             float[] _imdctTemp = new float[SSLIMIT];
             float[] _imdctResult = new float[SSLIMIT * 2];
 
+            float[] _longImdct_H = new float[17];
+            float[] _longImdct_h = new float[18];
+            float[] _longImdct_even = new float[9];
+            float[] _longImdct_odd = new float[9];
+            float[] _longImdct_evenIdct = new float[9];
+            float[] _longImdct_oddIdct = new float[9];
+
+            float[] _imdct9pt_even_idct = new float[5];
+            float[] _imdct9pt_odd_idct = new float[4];
+
+            float[] _shortImdct_H = new float[6];
+            float[] _shortImdct_h = new float[6];
+            float[] _shortImdct_evenIdct = new float[3];
+            float[] _shortImdct_oddIdct = new float[3];
+
             void LongImpl(float[] fsIn, int sbStart, int sbLimit, float[] nextblck, int blockType)
             {
                 for (int sb = sbStart, ofs = sbStart * SSLIMIT; sb < sbLimit; sb++)
@@ -222,10 +237,10 @@ namespace NLayer.Decoder
                 }
             }
 
-            static void LongIMDCT(float[] invec, float[] outvec)
+            void LongIMDCT(float[] invec, float[] outvec)
             {
                 int i;
-                float[] H = new float[17], h = new float[18], even = new float[9], odd = new float[9], even_idct = new float[9], odd_idct = new float[9];
+                float[] H = _longImdct_H, h = _longImdct_h, even = _longImdct_even, odd = _longImdct_odd, even_idct = _longImdct_evenIdct, odd_idct = _longImdct_oddIdct;
 
                 for (i = 0; i < 17; i++)
                     H[i] = invec[i] + invec[i + 1];
@@ -294,10 +309,10 @@ namespace NLayer.Decoder
                 return icos72_table[4 * i + 1];
             }
 
-            static void imdct_9pt(float[] invec, float[] outvec)
+            void imdct_9pt(float[] invec, float[] outvec)
             {
                 int i;
-                float[] even_idct = new float[5], odd_idct = new float[4];
+                float[] even_idct = _imdct9pt_even_idct, odd_idct = _imdct9pt_odd_idct;
                 float t0, t1, t2;
 
                 /* BEGIN 5 Point IMDCT */
@@ -405,10 +420,10 @@ namespace NLayer.Decoder
 
             const float sqrt32 = 0.8660254037844385965883020617184229195117950439453125f;
 
-            static void ShortIMDCT(float[] invec, int inIdx, float[] outvec)
+            void ShortIMDCT(float[] invec, int inIdx, float[] outvec)
             {
                 int i;
-                float[] H = new float[6], h = new float[6], even_idct = new float[3], odd_idct = new float[3];
+                float[] H = _shortImdct_H, h = _shortImdct_h, even_idct = _shortImdct_evenIdct, odd_idct = _shortImdct_oddIdct;
                 float t0, t1, t2;
 
                 /* Preprocess the input to the two 3-point IDCT's */
@@ -480,6 +495,7 @@ namespace NLayer.Decoder
 
         HybridMDCT _hybrid = new HybridMDCT();
         BitReservoir _bitRes = new BitReservoir();
+        float[][] _decodeFrameChanBufs = new float[2][];
 
         internal LayerIIIDecoder()
         {
@@ -511,7 +527,7 @@ namespace NLayer.Decoder
             PrepTables(frame);
 
             // do our stereo mode setup
-            var chanBufs = new float[2][];
+            var chanBufs = _decodeFrameChanBufs;
             var startChannel = 0;
             var endChannel = _channels - 1;
             if (_channels == 1 || StereoMode == StereoMode.LeftOnly || StereoMode == StereoMode.DownmixToMono)
