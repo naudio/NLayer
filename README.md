@@ -85,3 +85,6 @@ the repository.
   heading in `RELEASE_NOTES.md` to `### <version> (DD MMM YYYY)`, commit, then
   push a matching `v<version>` tag (e.g. `v2.0.0`). The workflow packs, pushes
   to NuGet, and creates a GitHub Release.
+
+See [`Docs/Releasing.md`](Docs/Releasing.md) for the full step-by-step guide,
+trusted-publishing setup, and troubleshooting.
