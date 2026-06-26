@@ -19,6 +19,9 @@ section matching the version being shipped:
 - Unified `NLayer` and `NLayer.NAudioSupport` on a single version (2.0.0).
 - Reproducible, deterministic builds with SourceLink, embedded sources,
   symbol packages (`.snupkg`) and an SPDX SBOM in each package.
+- Packages now carry the `RepositoryUrl` and commit metadata (closes #31).
+- Assemblies are now strong-named.
+- Packages now use the shared NAudio-family icon.
 - Added GitHub Actions CI (build + test on every PR) and an automated
   release workflow (pre-release via dispatch, final release via `v*` tag)
   publishing to NuGet via trusted publishing (OIDC).

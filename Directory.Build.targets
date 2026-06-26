@@ -8,6 +8,7 @@
   -->
   <ItemGroup Condition="'$(IsPackable)' != 'false'">
     <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)naudio-icon.png" Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
 
   <!--

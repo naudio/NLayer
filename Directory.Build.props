@@ -13,8 +13,23 @@
     <RepositoryUrl>https://github.com/naudio/NLayer</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <!-- Shared NAudio-family package icon, anchored to the repo root via
+         $(MSBuildThisFileDirectory) so it resolves from any csproj depth.
+         The matching <None Include> is in Directory.Build.targets. -->
+    <PackageIcon>naudio-icon.png</PackageIcon>
 
     <LangVersion>latest</LangVersion>
+    <!-- 0 compiler warnings today, so this is free; keeps the build clean.
+         (.NET code-analysis CA rules are not enabled here — see README.) -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- Strong naming. The .snk lives at the repo root, anchored via
+         $(MSBuildThisFileDirectory) so csprojs at any depth resolve it.
+         The key is checked into the repo (its private half is not a secret
+         for OSS strong naming — it only protects assembly identity). Test
+         and sample projects inherit signing too, which is harmless. -->
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)NLayerStrongNameKey.snk</AssemblyOriginatorKeyFile>
 
     <!-- SourceLink + symbol packages + reproducible CI builds.
          .NET 8+ ships SourceLink in the SDK; PublishRepositoryUrl=true

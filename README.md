@@ -65,6 +65,11 @@ dotnet test NLayer.sln -c Release
 Every push and pull request is built and tested by the `build` GitHub Actions
 workflow.
 
+Assemblies are strong-named with `NLayerStrongNameKey.snk` (checked into the
+repo root). Compiler warnings are treated as errors; the broader .NET
+code-analysis (CA) analyzers are not enabled — turning them on surfaces ~110
+mostly-mechanical style/perf suggestions that can be addressed incrementally.
+
 ## Releasing
 
 Versioning is centralised in `Directory.Build.props` (`<VersionPrefix>`) and
