@@ -1035,6 +1035,12 @@ namespace NLayer.Decoder
                                             new int[] { 0, 1, 2, 3, 0, 1, 2, 3, 1, 2, 3, 1, 2, 3, 2, 3 }
                                         };
 
+        // Reused scratch for ReadLsfScalefactors so we don't allocate an int[4] and an
+        // int[54] on every MPEG-2/2.5 granule. Both are fully cleared at the top of each
+        // call, matching the zero-initialised fresh arrays they replaced.
+        readonly int[] _lsfSlen = new int[4];
+        readonly int[] _lsfScalefacBuf = new int[54];
+
         static readonly int[][][] _sfbBlockCntTab = {
                                                         new int[][] { new int[] { 6, 5, 5, 5 },   new int[] { 9, 9, 9, 9 },    new int[] { 6, 9, 9, 9 }   },
                                                         new int[][] { new int[] { 6, 5, 7, 3 },   new int[] { 9, 9, 12, 6 },   new int[] { 6, 9, 12, 6 }  },
@@ -1201,7 +1207,8 @@ namespace NLayer.Decoder
                 blockTypeNumber = 0;
             }
 
-            int[] slen = new int[4];
+            int[] slen = _lsfSlen;
+            Array.Clear(slen, 0, 4);
             int blockNumber;
             if ((chanModeExt & 1) == 1 && ch == 1)
             {
@@ -1275,7 +1282,8 @@ namespace NLayer.Decoder
             }
 
             // now we populate our buffer...
-            var buffer = new int[54];
+            var buffer = _lsfScalefacBuf;
+            Array.Clear(buffer, 0, 54);
 
             var k = 0;
             var blkCnt = _sfbBlockCntTab[blockNumber][blockTypeNumber];
