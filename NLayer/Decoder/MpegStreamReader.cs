@@ -284,39 +284,22 @@ namespace NLayer.Decoder
                         // if we can't seek, there's nothing we can do
                         if (!reader._source.CanSeek) throw new InvalidOperationException("Cannot seek backwards on a forward-only stream!");
 
-                        // if there's data in the buffer, try to keep it (up to doubling the buffer size)
-                        if (End > 0)
-                        {
-                            // if doubling the buffer would push it past the max size, don't check it
-                            if ((startIdx + Data.Length > 0) || (Data.Length * 2 <= 16384 && startIdx + Data.Length * 2 > 0))
-                            {
-                                endIdx = End;
-                            }
-                        }
+                        // Seeking backwards before the start of the buffer.  The historic
+                        // "keep the overlap" optimization tried an in-place backwards move of the
+                        // buffered data, but both the move itself (a loop whose condition could
+                        // never be true) and the surrounding bookkeeping (the subsequent read was
+                        // written over the moved data instead of into the gap at the front) were
+                        // broken, corrupting the buffer on backwards seeks and throwing/garbling
+                        // audio (issues #7 and #38).  Just truncate and re-read from the requested
+                        // offset, which is the same well-tested path already used when the request
+                        // ends before the start of the buffer.
+                        Truncate();
 
-                        // we know we'll have to start reading here
+                        BaseOffset = offset;
                         readOffset = offset;
-
-                        // if the end of the request is before the start of our buffer...
-                        if (endIdx < 0)
-                        {
-                            // ... just truncate and move on
-                            Truncate();
-
-                            // set up our read parameters
-                            BaseOffset = offset;
-                            startIdx = 0;
-                            endIdx = count;
-
-                            // how much do we need to read?
-                            readCount = count;
-                        }
-                        else // i.e., endIdx >= 0
-                        {
-                            // we have overlap with existing data...  save as much as possible
-                            moveCount = -endIdx;
-                            readCount = -startIdx;
-                        }
+                        startIdx = 0;
+                        endIdx = count;
+                        readCount = count;
                     }
                     else // i.e., startIdx >= 0
                     {
@@ -377,41 +360,20 @@ namespace NLayer.Decoder
                         }
 
                         var newBuf = new byte[newSize];
-                        if (moveCount < 0)
-                        {
-                            // reverse copy
-                            Buffer.BlockCopy(Data, 0, newBuf, -moveCount, End + moveCount);
 
-                            DiscardCount = 0;
-                        }
-                        else
-                        {
-                            // forward or neutral copy
-                            Buffer.BlockCopy(Data, moveCount, newBuf, 0, End - moveCount);
+                        // forward or neutral copy (moveCount is always >= 0; it only ever
+                        // carries the discard count now that backwards seeks truncate)
+                        Buffer.BlockCopy(Data, moveCount, newBuf, 0, End - moveCount);
 
-                            DiscardCount -= moveCount;
-                        }
+                        DiscardCount -= moveCount;
                         Data = newBuf;
                     }
-                    else if (moveCount != 0)
+                    else if (moveCount > 0)
                     {
-                        if (moveCount > 0)
-                        {
-                            // forward move
-                            Buffer.BlockCopy(Data, moveCount, Data, 0, End - moveCount);
+                        // forward move
+                        Buffer.BlockCopy(Data, moveCount, Data, 0, End - moveCount);
 
-                            DiscardCount -= moveCount;
-                        }
-                        else
-                        {
-                            // backward move
-                            for (int i = 0, srcIdx = Data.Length - 1, destIdx = Data.Length - 1 - moveCount; i < moveCount; i++, srcIdx--, destIdx--)
-                            {
-                                Data[destIdx] = Data[srcIdx];
-                            }
-
-                            DiscardCount = 0;
-                        }
+                        DiscardCount -= moveCount;
                     }
 
                     BaseOffset += moveCount;

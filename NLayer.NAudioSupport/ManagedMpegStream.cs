@@ -11,22 +11,29 @@ namespace NLayer.NAudioSupport
         MpegFile _fileDecoder;
         bool _closeOnDispose;
 
-        public ManagedMpegStream(string fileName)
-            : this(File.OpenRead(fileName), true)
+        public ManagedMpegStream(string fileName, StereoMode stereoMode = StereoMode.Both)
+            : this(File.OpenRead(fileName), true, stereoMode)
         {
 
         }
 
-        public ManagedMpegStream(Stream source)
-            : this(source, false)
+        public ManagedMpegStream(Stream source, StereoMode stereoMode = StereoMode.Both)
+            : this(source, false, stereoMode)
         {
         }
 
-        public ManagedMpegStream(Stream source, bool closeOnDispose)
+        /// <param name="stereoMode">
+        /// How stereo content is decoded. The single-channel modes
+        /// (<see cref="NLayer.StereoMode.LeftOnly"/>, <see cref="NLayer.StereoMode.RightOnly"/>
+        /// and <see cref="NLayer.StereoMode.DownmixToMono"/>) produce a mono
+        /// <see cref="WaveFormat"/>, so the mode must be supplied here (where the wave format
+        /// is decided) rather than set afterwards.
+        /// </param>
+        public ManagedMpegStream(Stream source, bool closeOnDispose, StereoMode stereoMode = StereoMode.Both)
         {
             this._source = source;
             this._closeOnDispose = closeOnDispose;
-            this._fileDecoder = new MpegFile(this._source);
+            this._fileDecoder = new MpegFile(this._source) { StereoMode = stereoMode };
             this._waveFormat = WaveFormat.CreateIeeeFloatWaveFormat(this._fileDecoder.SampleRate, this._fileDecoder.Channels);
         }
 
@@ -43,7 +50,6 @@ namespace NLayer.NAudioSupport
         public StereoMode StereoMode
         {
             get { return _fileDecoder.StereoMode; }
-            set { _fileDecoder.StereoMode = value; }
         }
 
         public override int Read(byte[] buffer, int offset, int count)

@@ -142,15 +142,17 @@ namespace NLayer
 
                 var cnt = curDecoder.DecodeFrame(frame, _ch0, _ch1);
 
-                if (frame.ChannelMode == MpegChannelMode.Mono)
+                if (frame.ChannelMode == MpegChannelMode.Mono || StereoMode != StereoMode.Both)
                 {
+                    // Either the source is mono, or the caller asked for a single channel
+                    // (LeftOnly / RightOnly / DownmixToMono). In every one of those cases the
+                    // layer decoder has already placed the single channel of output in _ch0, so
+                    // emit just that one channel rather than interleaving the (stale) _ch1.
                     Buffer.BlockCopy(_ch0, 0, dest, destOffset * sizeof(float), cnt * sizeof(float));
                 }
                 else
                 {
-                    // This is kinda annoying...  if we're doing a downmix, we should technically only output a single channel
-                    //  The problem is, our caller is probably expecting stereo output.  Grrrr....
-
+                    // Full stereo: interleave both channels.
                     // We use Buffer.BlockCopy here because we don't know dest's type, but do know it's big enough to do the copy
                     for (int i = 0; i < cnt; i++)
                     {

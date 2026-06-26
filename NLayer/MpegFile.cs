@@ -63,9 +63,16 @@ namespace NLayer
         public int SampleRate { get { return _reader.SampleRate; } }
 
         /// <summary>
-        /// Channel count of source Mpeg.
+        /// Channel count of decoded output. This is the source channel count for
+        /// <see cref="NLayer.StereoMode.Both"/>, but 1 for the single-channel modes
+        /// (<see cref="NLayer.StereoMode.LeftOnly"/>, <see cref="NLayer.StereoMode.RightOnly"/>
+        /// and <see cref="NLayer.StereoMode.DownmixToMono"/>).
         /// </summary>
-        public int Channels { get { return _reader.Channels; } }
+        public int Channels { get { return OutputChannels; } }
+
+        // The number of channels actually produced by ReadSamples, taking StereoMode into
+        // account. All of the byte/sample/position math below is in terms of output channels.
+        int OutputChannels { get { return StereoMode == StereoMode.Both ? _reader.Channels : 1; } }
 
         /// <summary>
         /// Whether the Mpeg stream supports seek operation.
@@ -81,7 +88,7 @@ namespace NLayer
             {
                 var count = _reader.SampleCount;
                 if (count < 0) return -1;
-                return (count - _encoderDelay - _encoderPadding) * _reader.Channels * sizeof(float);
+                return (count - _encoderDelay - _encoderPadding) * OutputChannels * sizeof(float);
             }
         }
 
@@ -110,7 +117,7 @@ namespace NLayer
                 if (value < 0L) throw new ArgumentOutOfRangeException("value");
 
                 // we're thinking in 4-byte samples, pcmStep interleaved...  adjust accordingly
-                var samples = value / sizeof(float) / _reader.Channels;
+                var samples = value / sizeof(float) / OutputChannels;
                 var sampleOffset = 0;
 
                 // seek to the frame preceding the one we want (unless we're seeking to the first frame)
@@ -135,7 +142,7 @@ namespace NLayer
                         newPos += sampleOffset;
                     }
 
-                    _position = newPos * sizeof(float) * _reader.Channels;
+                    _position = newPos * sizeof(float) * OutputChannels;
                     _eofFound = false;
                     _decoderDelaySkipped = (newPos > 0 || _encoderDelay == 0);
 
@@ -150,8 +157,8 @@ namespace NLayer
         /// </summary>
         public TimeSpan Time
         {
-            get { return TimeSpan.FromSeconds((double)_position / sizeof(float) / _reader.Channels / _reader.SampleRate); }
-            set { Position = (long)(value.TotalSeconds * _reader.SampleRate * _reader.Channels * sizeof(float)); }
+            get { return TimeSpan.FromSeconds((double)_position / sizeof(float) / OutputChannels / _reader.SampleRate); }
+            set { Position = (long)(value.TotalSeconds * _reader.SampleRate * OutputChannels * sizeof(float)); }
         }
 
         /// <summary>
@@ -241,7 +248,7 @@ namespace NLayer
 
             // Total logical bytes of real audio (excludes encoder delay and end padding)
             var rawSampleCount = _reader.SampleCount;
-            var totalBytes = rawSampleCount >= 0 ? (rawSampleCount - _encoderDelay - _encoderPadding) * _reader.Channels * sizeof(float) : long.MaxValue;
+            var totalBytes = rawSampleCount >= 0 ? (rawSampleCount - _encoderDelay - _encoderPadding) * OutputChannels * sizeof(float) : long.MaxValue;
 
             // lock around the entire read operation so seeking doesn't bork our buffers as we decode
             lock (_seekLock)
@@ -334,7 +341,7 @@ namespace NLayer
                             // Skip encoder delay samples at the start of the stream
                             if (!_decoderDelaySkipped)
                             {
-                                var skipBytes = _encoderDelay * _reader.Channels * sizeof(float);
+                                var skipBytes = _encoderDelay * OutputChannels * sizeof(float);
                                 if (skipBytes > 0 && skipBytes <= _readBufLen)
                                 {
                                     _readBufOfs = skipBytes;

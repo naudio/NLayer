@@ -111,7 +111,11 @@ namespace NLayer.Decoder
                 }
                 else
                 {
-                    frameSize = 144 * BitRate / SampleRate + Padding;
+                    // SampleCount/8 is 144 for MPEG-1 Layer II/III and Layer II generally,
+                    // but 72 for MPEG-2/2.5 Layer III (576 samples per frame). Using a
+                    // hard-coded 144 doubled the frame length for MPEG-2/2.5 Layer III,
+                    // desyncing the parser and producing garbled output (see issues #10/#43/#33).
+                    frameSize = SampleCount / 8 * BitRate / SampleRate + Padding;
                 }
             }
             else

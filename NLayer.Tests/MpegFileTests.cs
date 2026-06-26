@@ -63,5 +63,104 @@ namespace NLayer.Tests
             using var file = new MpegFile(new MemoryStream(SilentMp3.Create(2)));
             Assert.Throws<ArgumentOutOfRangeException>(() => file.ReadSamples(new float[16], -1, 4));
         }
+
+        [Fact]
+        public void Reads_format_from_mpeg2_stream()
+        {
+            using var file = new MpegFile(new MemoryStream(SilentMp3.Mpeg2.Create(10)));
+
+            Assert.Equal(SilentMp3.Mpeg2.SampleRate, file.SampleRate);
+            Assert.Equal(SilentMp3.Mpeg2.Channels, file.Channels);
+        }
+
+        [Theory]
+        [InlineData(StereoMode.LeftOnly)]
+        [InlineData(StereoMode.RightOnly)]
+        [InlineData(StereoMode.DownmixToMono)]
+        public void Single_channel_stereo_modes_report_one_channel(StereoMode mode)
+        {
+            // Regression test for issue #5: the single-channel stereo modes used to leave
+            // Channels at 2 and emit interleaved output (with a silent/garbage second
+            // channel) for a stereo source. They should now produce genuine mono.
+            var data = SilentMp3.Create(10); // MPEG-1, 44.1 kHz, stereo
+            using var both = new MpegFile(new MemoryStream(data));
+            using var mono = new MpegFile(new MemoryStream(data)) { StereoMode = mode };
+
+            Assert.Equal(2, both.Channels);
+            Assert.Equal(1, mono.Channels);
+
+            // Same media duration, half the PCM bytes (one channel instead of two).
+            Assert.Equal(both.Duration, mono.Duration);
+            Assert.Equal(both.Length / 2, mono.Length);
+
+            var buffer = new float[4096];
+            long monoTotal = 0, bothTotal = 0;
+            int read;
+            while ((read = mono.ReadSamples(buffer, 0, buffer.Length)) > 0) monoTotal += read;
+            while ((read = both.ReadSamples(buffer, 0, buffer.Length)) > 0) bothTotal += read;
+
+            Assert.Equal(bothTotal / 2, monoTotal);
+        }
+
+        [Fact]
+        public void Default_stereo_mode_is_unchanged()
+        {
+            // The common case must be untouched by the issue #5 fix: a stereo source decodes
+            // to two interleaved channels exactly as before.
+            using var file = new MpegFile(new MemoryStream(SilentMp3.Create(10)));
+            Assert.Equal(StereoMode.Both, file.StereoMode);
+            Assert.Equal(2, file.Channels);
+        }
+
+        [Fact]
+        public void Backwards_seeks_stay_stable()
+        {
+            // Smoke test around the backwards-seek buffer handling reworked for issues
+            // #7/#38. A silent stream must stay silent and never throw, no matter how we
+            // seek around it. (The full corruption in #7/#38 only manifests on streams
+            // with real Huffman data, which can't be synthesised here, so this guards the
+            // invariant rather than reproducing the exact garbling.)
+            using var file = new MpegFile(new MemoryStream(SilentMp3.Create(40)));
+            Assert.True(file.CanSeek);
+
+            var total = file.Length;
+            var buffer = new float[2048];
+            var rng = new Random(1234);
+
+            for (var i = 0; i < 500; i++)
+            {
+                // jump forwards to load some data, then repeatedly seek backwards
+                file.Position = Math.Min(total - 1, (long)(rng.NextDouble() * total));
+                var read = file.ReadSamples(buffer, 0, buffer.Length);
+                for (var j = 0; j < read; j++)
+                {
+                    Assert.True(Math.Abs(buffer[j]) < 1e-3f, $"Backwards seek produced non-silence: {buffer[j]}");
+                }
+            }
+        }
+
+        [Fact]
+        public void Mpeg2_frames_decode_full_length()
+        {
+            // Regression test for issues #10/#43/#33: MPEG-2/2.5 Layer III frames hold
+            // 576 samples and have a frame length based on SampleCount/8 (= 72), not the
+            // 144 used for MPEG-1. The hard-coded 144 doubled the assumed frame length,
+            // so the parser desynced and decoded only roughly half the audio.
+            const int frameCount = 20;
+            using var file = new MpegFile(new MemoryStream(SilentMp3.Mpeg2.Create(frameCount)));
+
+            var buffer = new float[4096];
+            long total = 0;
+            int read;
+            while ((read = file.ReadSamples(buffer, 0, buffer.Length)) > 0)
+            {
+                total += read;
+            }
+
+            // Allow one frame of priming tolerance; the buggy frame size produced only
+            // about half this many samples, so this comfortably distinguishes the two.
+            var expected = (long)(frameCount - 1) * SilentMp3.Mpeg2.SamplesPerFrame * SilentMp3.Mpeg2.Channels;
+            Assert.True(total >= expected, $"Expected at least {expected} samples but decoded {total}");
+        }
     }
 }
