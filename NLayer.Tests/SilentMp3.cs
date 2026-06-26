@@ -41,5 +41,44 @@ namespace NLayer.Tests
             }
             return data;
         }
+
+        /// <summary>
+        /// Builds a minimal MPEG-2 (lower sample rate) Layer III bitstream. These
+        /// frames carry 576 samples each and have a frame length derived from
+        /// SampleCount/8 (= 72), NOT the 144 used for MPEG-1. This is the case
+        /// that regressed in issues #10/#43/#33 when the frame length was
+        /// hard-coded to 144.
+        /// </summary>
+        internal static class Mpeg2
+        {
+            public const int SampleRate = 22050;
+            public const int Channels = 1;
+            public const int SamplesPerFrame = 576;
+
+            //   0xFF        sync (11111111)
+            //   0xF3        sync(111) version=MPEG2(10) layer=III(01) protection=off(1)
+            //   0x80        bitrate=64k(1000) samplerate=22.05k(00) padding=0 private=0
+            //   0xC0        channel=mono(11) modeExt(00) copyright=0 original=0 emphasis(00)
+            private static readonly byte[] Header = { 0xFF, 0xF3, 0x80, 0xC0 };
+
+            // Frame length (bytes) = (SampleCount / 8) * bitrate / samplerate + padding
+            //                      = 72 * 64000 / 22050 = 208 (integer truncation).
+            // The old (buggy) calculation produced 144 * 64000 / 22050 = 417.
+            public const int FrameLength = 208;
+
+            public static byte[] Create(int frameCount)
+            {
+                if (frameCount < 1) throw new ArgumentOutOfRangeException(nameof(frameCount));
+
+                var data = new byte[FrameLength * frameCount];
+                for (var i = 0; i < frameCount; i++)
+                {
+                    // Header only; the 9-byte MPEG-2 mono side info and main data stay zero,
+                    // so each frame decodes to 576 samples of silence.
+                    Array.Copy(Header, 0, data, i * FrameLength, Header.Length);
+                }
+                return data;
+            }
+        }
     }
 }
