@@ -8,7 +8,7 @@ using System;
 namespace NLayer.Decoder
 {
     // there's not much we have to do here... table selection, granule count, scalefactor selection
-    class LayerIIDecoder : LayerIIDecoderBase
+    sealed class LayerIIDecoder : LayerIIDecoderBase
     {
         static internal bool GetCRC(MpegFrame frame, ref uint crc)
         {

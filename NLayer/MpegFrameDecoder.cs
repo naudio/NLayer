@@ -59,14 +59,14 @@ namespace NLayer
         /// <returns></returns>
         public int DecodeFrame(IMpegFrame frame, byte[] dest, int destOffset)
         {
-            if (frame == null) throw new ArgumentNullException("frame");
-            if (dest == null) throw new ArgumentNullException("dest");
-            if (destOffset % 4 != 0) throw new ArgumentException("Must be an even multiple of 4", "destOffset");
+            if (frame == null) throw new ArgumentNullException(nameof(frame));
+            if (dest == null) throw new ArgumentNullException(nameof(dest));
+            if (destOffset % 4 != 0) throw new ArgumentException("Must be an even multiple of 4", nameof(destOffset));
 
             var bufferAvailable = (dest.Length - destOffset) / 4;
             if (bufferAvailable < (frame.ChannelMode == MpegChannelMode.Mono ? 1 : 2) * frame.SampleCount)
             {
-                throw new ArgumentException("Buffer not large enough!  Must be big enough to hold the frame's entire output.  This is up to 9,216 bytes.", "dest");
+                throw new ArgumentException("Buffer not large enough!  Must be big enough to hold the frame's entire output.  This is up to 9,216 bytes.", nameof(dest));
             }
 
             return DecodeFrameImpl(frame, dest, destOffset / 4) * 4;
@@ -94,12 +94,12 @@ namespace NLayer
         /// <returns></returns>
         public int DecodeFrame(IMpegFrame frame, float[] dest, int destOffset)
         {
-            if (frame == null) throw new ArgumentNullException("frame");
-            if (dest == null) throw new ArgumentNullException("dest");
+            if (frame == null) throw new ArgumentNullException(nameof(frame));
+            if (dest == null) throw new ArgumentNullException(nameof(dest));
 
             if (dest.Length - destOffset < (frame.ChannelMode == MpegChannelMode.Mono ? 1 : 2) * frame.SampleCount)
             {
-                throw new ArgumentException("Buffer not large enough!  Must be big enough to hold the frame's entire output.  This is up to 2,304 elements.", "dest");
+                throw new ArgumentException("Buffer not large enough!  Must be big enough to hold the frame's entire output.  This is up to 2,304 elements.", nameof(dest));
             }
 
             return DecodeFrameImpl(frame, dest, destOffset);

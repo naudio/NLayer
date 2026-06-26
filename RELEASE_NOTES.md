@@ -28,3 +28,7 @@ section matching the version being shipped:
 - Added an initial `NLayer.Tests` project.
 - `NLayer.NAudioSupport` continues to target NAudio 2; NAudio 3 support
   will follow once the NAudio 3 API stabilises.
+- Enabled .NET code-analysis (CA) analyzers at the `8.0-recommended` baseline
+  with warnings as errors, and cleaned up the resulting findings (sealed
+  internal types, `nameof`, redundant initializers removed, `static` helpers,
+  `GC.SuppressFinalize` in `Dispose`).

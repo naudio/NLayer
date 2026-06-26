@@ -5,6 +5,8 @@
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
+    <!-- Underscores in test method names are idiomatic (Given_When_Then). -->
+    <NoWarn>$(NoWarn);CA1707</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

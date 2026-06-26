@@ -9,7 +9,7 @@ namespace NLayer.Decoder
 {
     // Layer I is really just a special case of Layer II...  1 granule, 4 allocation bits per subband, 1 scalefactor per active subband, no grouping
     // That (of course) means we literally have no logic here
-    class LayerIDecoder : LayerIIDecoderBase
+    sealed class LayerIDecoder : LayerIIDecoderBase
     {
         static internal bool GetCRC(MpegFrame frame, ref uint crc)
         {

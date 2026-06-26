@@ -3,7 +3,7 @@ using System;
 
 namespace NLayer.NAudioSupport
 {
-    class Mp3FrameWrapper : IMpegFrame
+    sealed class Mp3FrameWrapper : IMpegFrame
     {
         Mp3Frame _frame;
 
@@ -129,7 +129,7 @@ namespace NLayer.NAudioSupport
 
         public int ReadBits(int bitCount)
         {
-            if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException("bitCount");
+            if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException(nameof(bitCount));
             while (_bitsRead < bitCount)
             {
                 if (_readOffset == _frame.FrameLength) throw new System.IO.EndOfStreamException();

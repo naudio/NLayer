@@ -66,9 +66,11 @@ Every push and pull request is built and tested by the `build` GitHub Actions
 workflow.
 
 Assemblies are strong-named with `NLayerStrongNameKey.snk` (checked into the
-repo root). Compiler warnings are treated as errors; the broader .NET
-code-analysis (CA) analyzers are not enabled — turning them on surfaces ~110
-mostly-mechanical style/perf suggestions that can be addressed incrementally.
+repo root). Warnings — both compiler and .NET code-analysis (CA) analyzers — are
+treated as errors. The analyzer baseline is `8.0-recommended` (set in
+`Directory.Build.props`); per-rule overrides live in `.editorconfig`. Notably the
+throw-helper rules (CA1510–CA1513) are disabled because their helpers don't exist
+in `netstandard2.0`, which NLayer still targets.
 
 ## Releasing
 

@@ -4,7 +4,7 @@ namespace NLayer.Decoder
 {
     abstract class FrameBase
     {
-        static int _totalAllocation = 0;
+        static int _totalAllocation;
         static internal int TotalAllocation
         {
             get { return System.Threading.Interlocked.CompareExchange(ref _totalAllocation, 0, 0); }
@@ -60,7 +60,7 @@ namespace NLayer.Decoder
         {
             if (_savedBuffer != null)
             {
-                if (offset < 0) throw new ArgumentOutOfRangeException();
+                if (offset < 0) throw new ArgumentOutOfRangeException(nameof(offset));
                 if (offset >= _savedBuffer.Length) return -1;
 
                 return (int)_savedBuffer[offset];

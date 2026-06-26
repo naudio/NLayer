@@ -232,9 +232,9 @@ namespace NLayer.Decoder
 
             DCT32(data, synBuf, k);
 
-            BuildUVec(ippuv, synBuf, k);
+            LayerDecoderBase.BuildUVec(ippuv, synBuf, k);
 
-            DewindowOutput(ippuv, data);
+            LayerDecoderBase.DewindowOutput(ippuv, data);
         }
 
         void GetBufAndOffset(int channel, out float[] synBuf, out int k)
@@ -377,7 +377,7 @@ namespace NLayer.Decoder
             _out[7] = oo8[3];
         }
 
-        void BuildUVec(float[] u_vec, float[] cur_synbuf, int k)
+        static void BuildUVec(float[] u_vec, float[] cur_synbuf, int k)
         {
             int i, j, uvp = 0;
 
@@ -407,7 +407,7 @@ namespace NLayer.Decoder
             }
         }
 
-        void DewindowOutput(float[] u_vec, float[] samples)
+        static void DewindowOutput(float[] u_vec, float[] samples)
         {
             for (int i = 0; i < 512; i++)
             {

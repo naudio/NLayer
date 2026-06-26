@@ -4,7 +4,7 @@ using System.Text;
 
 namespace NLayer.Decoder
 {
-    class MpegFrame : FrameBase, IMpegFrame
+    sealed class MpegFrame : FrameBase, IMpegFrame
     {
         static readonly int[][][] _bitRateTable =
         {
@@ -64,7 +64,7 @@ namespace NLayer.Decoder
         // 8
         int _readOffset, _bitsRead;
         // 8
-        ulong _bitBucket = 0UL;
+        ulong _bitBucket;
         // 8
         long _offset;
         // 4
@@ -524,7 +524,7 @@ namespace NLayer.Decoder
 
         public int ReadBits(int bitCount)
         {
-            if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException("bitCount");
+            if (bitCount < 1 || bitCount > 32) throw new ArgumentOutOfRangeException(nameof(bitCount));
             if (_isMuted) return 0;
 
             while (_bitsRead < bitCount)

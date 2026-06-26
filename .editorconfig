@@ -1,0 +1,17 @@
+root = true
+
+[*.cs]
+# --- Analyzer rule overrides (see Directory.Build.props for AnalysisLevel) ---
+
+# Throw-helper rules. The helpers they suggest
+#   CA1510 -> ArgumentNullException.ThrowIfNull
+#   CA1511 -> ArgumentException.ThrowIfNullOrEmpty
+#   CA1512 -> ArgumentOutOfRangeException.ThrowIf*
+#   CA1513 -> ObjectDisposedException.ThrowIf
+# were added in .NET 6+ and do NOT exist in netstandard2.0, which NLayer still
+# targets. Applying the fixes would break the netstandard2.0 build, so these are
+# disabled until netstandard2.0 is dropped.
+dotnet_diagnostic.CA1510.severity = none
+dotnet_diagnostic.CA1511.severity = none
+dotnet_diagnostic.CA1512.severity = none
+dotnet_diagnostic.CA1513.severity = none

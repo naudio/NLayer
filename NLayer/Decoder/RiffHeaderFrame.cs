@@ -8,7 +8,7 @@ namespace NLayer.Decoder
     /// <summary>
     /// RIFF header reader
     /// </summary>
-    class RiffHeaderFrame : FrameBase
+    sealed class RiffHeaderFrame : FrameBase
     {
         internal static RiffHeaderFrame TrySync(uint syncMark)
         {

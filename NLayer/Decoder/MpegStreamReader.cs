@@ -3,7 +3,7 @@ using System.IO;
 
 namespace NLayer.Decoder
 {
-    class MpegStreamReader
+    sealed class MpegStreamReader
     {
         ID3Frame _id3Frame, _id3v1Frame;
         RiffHeaderFrame _riffHeaderFrame;
@@ -207,8 +207,14 @@ namespace NLayer.Decoder
 
                         if (!_canSeek)
                         {
-                            // gotta finish filling the buffer!!
+                            // Intentional guard: free-format frames are not supported on
+                            // forward-only streams. This sits in a finally only because the
+                            // free-frame length is finalised here on every exit path; the
+                            // normal paths above do not throw, so it does not mask another
+                            // in-flight exception.
+#pragma warning disable CA2219 // Do not raise exceptions in finally clauses
                             throw new InvalidOperationException("Free frames cannot be read properly from forward-only streams!");
+#pragma warning restore CA2219
                         }
 
                         // if _lastFree hasn't changed (we got a non-MPEG frame), clear it out
@@ -221,7 +227,7 @@ namespace NLayer.Decoder
             }
         }
 
-        class ReadBuffer
+        sealed class ReadBuffer
         {
             public byte[] Data;
             public long BaseOffset;
@@ -530,17 +536,17 @@ namespace NLayer.Decoder
         internal int Read(long offset, byte[] buffer, int index, int count)
         {
             // make sure the offset is at least positive
-            if (offset < 0L) throw new ArgumentOutOfRangeException("offset");
+            if (offset < 0L) throw new ArgumentOutOfRangeException(nameof(offset));
 
             // make sure the buffer is valid
-            if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
+            if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException(nameof(index));
 
             return _readBuf.Read(this, offset, buffer, index, count);
         }
 
         internal int ReadByte(long offset)
         {
-            if (offset < 0L) throw new ArgumentOutOfRangeException("offset");
+            if (offset < 0L) throw new ArgumentOutOfRangeException(nameof(offset));
 
             return _readBuf.ReadByte(this, offset);
         }
