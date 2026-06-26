@@ -34,14 +34,14 @@ jobs:
         with:
           dotnet-version: 8.0.x
 
-      # Dispatch must come from master. Tag pushes are unrestricted because
+      # Dispatch must come from main. Tag pushes are unrestricted because
       # the tag itself is the gate.
       - name: Verify branch (dispatch only)
         if: github.event_name == 'workflow_dispatch'
         shell: pwsh
         run: |
-          if ($env:GITHUB_REF -ne 'refs/heads/master') {
-            Write-Error "Release dispatch must be from master (got $env:GITHUB_REF)."
+          if ($env:GITHUB_REF -ne 'refs/heads/main') {
+            Write-Error "Release dispatch must be from main (got $env:GITHUB_REF)."
             exit 1
           }
 
