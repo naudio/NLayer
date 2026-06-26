@@ -18,14 +18,12 @@ _Evaluation date: 2026-06-26. Tested against PR head `73e21d4` and `master` `044
   no LAME tag, no iTunSMPB). For such a file the exact original length is
   **fundamentally unrecoverable by automated means**: the reporter's 1,152 / 1,563
   values came from painstaking trial-and-error and are not present anywhere in the file.
-- **The manual `EncoderDelay`/`EncoderPadding` override is a niche escape hatch, not a
-  general solution.** It only helps a caller who *already knows* the exact values — which,
-  for a metadata-less file, requires the same manual analysis the reporter did. Its one
-  defensible use is a **batch pipeline** where every file comes from the same encoder/preset
-  (measure once, apply to all — which is the reporter's actual situation). For an arbitrary
-  file from an unknown source it provides no usable answer. The honest fix for that class of
-  file is to **re-encode through a gapless-aware encoder** (LAME, etc.) that writes the tag,
-  after which auto-detection just works.
+- **The manual `EncoderDelay`/`EncoderPadding` override has been dropped** (see §5). It
+  only helped a caller who *already knew* the exact values — which, for a metadata-less file,
+  requires the same manual analysis the reporter did. It provided no usable answer for an
+  arbitrary file from an unknown source, so it has been removed pending a real request. The
+  honest fix for a metadata-less file is to **re-encode through a gapless-aware encoder**
+  (LAME, etc.) that writes the tag, after which auto-detection just works.
 
 ## 1. Is the PR safe? — Yes
 
@@ -79,21 +77,13 @@ gapless header, and Audition only loops it seamlessly because *it* knows its own
 encoder's delay.
 
 **Conclusion:** Nothing was missed in the PR's parsing — there is genuinely nothing in the
-file to parse. The exact original length cannot be recovered programmatically. Two practical
-responses exist, neither of which is a generic auto-fix:
-
-1. **Re-encode through a gapless-aware encoder** (recommended for most users). Running the
-   file through LAME produces an `Info`/`LAME` tag, after which the PR's auto-detection
-   trims it correctly with no further work.
-2. **Manual override**, *only* if you already know the values (e.g. a batch of loops all
-   exported from the same Adobe Audition preset — measure 1,152 / 1,563 once, apply to all):
-   ```csharp
-   var mp = new MpegFile("title.mp3");
-   mp.EncoderDelay = 1152;
-   mp.EncoderPadding = 1563;   // now decodes to exactly 1,181,541 samples
-   ```
-   This was verified to produce exactly 1,181,541 samples and to survive seeking. It is not a
-   solution for an arbitrary metadata-less file, because there is no way to know the numbers.
+file to parse. The exact original length cannot be recovered programmatically. The practical
+fix is to **re-encode through a gapless-aware encoder**: running the file through LAME
+produces an `Info`/`LAME` tag, after which auto-detection trims it correctly with no further
+work. (During evaluation, manually feeding the reporter's 1,152 / 1,563 values through the
+since-removed override produced exactly 1,181,541 samples and survived seeking — confirming
+those *are* the right values, but also that knowing them at all required the reporter's
+manual analysis. See §5 for why the override was dropped.)
 
 ## 3. Real MP3s — what was tested
 
@@ -107,38 +97,41 @@ responses exist, neither of which is a generic auto-fix:
   a real-world tag, but the format is matched.)
 - **No-metadata path**: the original issue #9 file exercises the fallback (delay/pad 0).
 
-## 4. Proposed plan — extend the test suite for gapless
+## 4. Test suite — added to `NLayer.Tests`
 
-Master now has an `NLayer.Tests` xUnit (net8.0) project (added in #48) with a clever
-`SilentMp3` helper that synthesises a valid bare MPEG-1 L3 bitstream **in memory** — no
-binary fixtures. The gapless tests should build on that project and prefer the same
-in-memory / generated approach where possible.
+Master's `NLayer.Tests` xUnit (net8.0) project (added in #48) already had a `SilentMp3`
+helper that synthesises a valid bare MPEG-1 L3 bitstream **in memory** — no binary fixtures.
+The gapless tests build on that, the same way: a new `GaplessMp3` helper prepends a LAME
+`Info` header frame or an `iTunSMPB` ID3v2 `TXXX` tag to a `SilentMp3` body, all in code.
 
-### Test data — prefer generated/crafted over committed binaries
-The delay/padding tags can be produced without checking in audio:
-- **iTunSMPB**: the tag is plain text in an ID3v2 `TXXX` frame; it can be **prepended in
-  code** to a `SilentMp3`-style stream (exactly as this evaluation crafted `title_itunsmpb`),
-  so no binary asset is needed.
-- **LAME `Info`/`Xing` + `LAME` tag**: the header layout is well-defined; a minimal valid
-  Info frame with known delay/padding can also be built in code.
-- A couple of **real LAME-encoded fixtures** (sub-second tones, ~8–17 KB) are still worth
-  committing as a belt-and-braces check that parsing matches what LAME actually writes,
-  with a `tools/generate-assets.sh` documenting how they were produced. This avoids a hard
-  CI dependency on LAME while keeping one real-world anchor.
+The generator was cross-checked against real LAME 3.100 output to get the conventions right
+(notably: the Xing *Frames* field counts the audio frames only, excluding the header frame —
+verified against an actual `lame -b 128 --cbr` file). With deterministic silence the expected
+sample counts are exact.
 
-### Tests to add (focused on the *valuable* behaviour — auto-detection)
-- **LAME tag parse** → `MpegFile` reports the embedded delay/padding and trims to the exact
-  source length (the headline capability).
-- **iTunSMPB parse** → delay/padding read from the `TXXX` frame; covers Latin-1/UTF-16+BOM.
-- **No-metadata regression** → delay/padding default to 0 and decoded output is unchanged
-  vs. the pre-PR behaviour (guards against silent breakage).
-- **Edge case** → encoder delay that exactly fills one frame decodes without hanging.
-- **Manual override (minor)** → setting the values trims accordingly; included for coverage,
-  but documented as the niche escape hatch it is, not the issue #9 resolution.
+`GaplessTests` (6 tests, all passing — full suite 11/11):
+- **`Lame_tag_trims_encoder_delay_and_padding`** — the headline capability: trims to
+  `frames·1152 − delay − padding`.
+- **`ITunSmpb_tag_trims_encoder_delay_and_padding`** — same via the ID3v2 `TXXX` path.
+- **`Stream_without_gapless_metadata_is_not_trimmed`** — regression guard: no tag ⇒ no trim.
+- **`Lame_tag_with_zero_delay_and_padding_is_a_no_op`** — a present-but-zero tag changes nothing.
+- **`Trimmed_length_matches_decoded_samples`** — `MpegFile.Length` agrees with what is decoded.
+- **`Encoder_delay_filling_an_entire_frame_does_not_hang`** — regression for the one-frame
+  delay infinite-loop, guarded with a timeout.
 
-### Open scope decisions (for you)
-1. Go ahead and add the gapless tests to `NLayer.Tests`, or stop at this evaluation?
-2. Generated/crafted test data (recommended) vs. also committing a couple of real LAME fixtures?
-3. The PR itself: keep as-is and just add tests, or also push small hardening
-   (clamp negative `Length`/`Duration`; honest XML-doc on the override explaining it needs
-   known values and pointing metadata-less users at re-encoding)?
+No binary assets were committed — everything is generated, matching the repo's existing
+convention. The real LAME/iTunSMPB sample files used during evaluation live in the session
+scratchpad and a `tools/` generator script could be added later if a real-world anchor fixture
+is ever wanted.
+
+## 5. Change made: manual override removed
+
+Per maintainer decision, the public `MpegFile.EncoderDelay` / `EncoderPadding` **setter**
+properties from the original PR have been removed. Rationale: they only help a caller who
+already knows the exact delay/padding, which a metadata-less file does not provide — so the
+"escape hatch" had no realistic general use. The internal auto-detection plumbing
+(`VBRInfo` / `MpegStreamReader` / `ID3Frame`) is unchanged; the values are still detected and
+applied automatically. No read-only getters were added either: exposing the detected values is
+cheap to add later if requested, but removing public API later would be a breaking change, so
+the surface is kept minimal for now. Nothing else in the repo referenced the removed
+properties.
