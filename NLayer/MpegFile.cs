@@ -99,28 +99,6 @@ namespace NLayer
         }
 
         /// <summary>
-        /// Number of samples of encoder delay at the start of the stream (from LAME header).
-        /// These samples are automatically skipped during decoding.
-        /// Can be set manually for files without a LAME header.
-        /// </summary>
-        public int EncoderDelay
-        {
-            get { return _encoderDelay; }
-            set { _encoderDelay = value; }
-        }
-
-        /// <summary>
-        /// Number of padding samples at the end of the stream (from LAME header).
-        /// These samples are automatically trimmed during decoding.
-        /// Can be set manually for files without a LAME header.
-        /// </summary>
-        public int EncoderPadding
-        {
-            get { return _encoderPadding; }
-            set { _encoderPadding = value; }
-        }
-
-        /// <summary>
         /// Current decode position, in number of sample. Calling the setter will result in a seeking operation.
         /// </summary>
         public long Position
