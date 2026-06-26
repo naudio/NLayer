@@ -51,6 +51,7 @@ namespace NLayer
                 _stream.Dispose();
                 _closeStream = false;
             }
+            GC.SuppressFinalize(this);
         }
         /// <summary>
         /// Sample rate of source Mpeg, in Hertz.
@@ -94,7 +95,7 @@ namespace NLayer
             set
             {
                 if (!_reader.CanSeek) throw new InvalidOperationException("Cannot Seek!");
-                if (value < 0L) throw new ArgumentOutOfRangeException("value");
+                if (value < 0L) throw new ArgumentOutOfRangeException(nameof(value));
 
                 // we're thinking in 4-byte samples, pcmStep interleaved...  adjust accordingly
                 var samples = value / sizeof(float) / _reader.Channels;
@@ -111,7 +112,7 @@ namespace NLayer
                 {
                     // seek the stream
                     var newPos = _reader.SeekTo(samples);
-                    if (newPos == -1) throw new ArgumentOutOfRangeException("value");
+                    if (newPos == -1) throw new ArgumentOutOfRangeException(nameof(value));
 
                     _decoder.Reset();
 
@@ -168,7 +169,7 @@ namespace NLayer
         /// <returns>Sample size actually reads, in bytes.</returns>
         public int ReadSamples(byte[] buffer, int index, int count)
         {
-            if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
+            if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException(nameof(index));
 
             // make sure we're asking for an even number of samples
             count -= (count % sizeof(float));
@@ -198,7 +199,7 @@ namespace NLayer
         /// <returns>Sample count actually reads.</returns>
         public int ReadSamples(float[] buffer, int index, int count)
         {
-            if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException("index");
+            if (index < 0 || index + count > buffer.Length) throw new ArgumentOutOfRangeException(nameof(index));
 
             // ReadSampleImpl "thinks" in bytes, so adjust accordingly
             return ReadSamplesImpl(buffer, index * sizeof(float), count * sizeof(float), 32) / sizeof(float);
@@ -206,14 +207,14 @@ namespace NLayer
 
         public int ReadSamplesInt16(byte[] buffer, int index, int count)
         {
-            if (index < 0 || index + count > buffer.Length * sizeof(short)) throw new ArgumentOutOfRangeException("index");
+            if (index < 0 || index + count > buffer.Length * sizeof(short)) throw new ArgumentOutOfRangeException(nameof(index));
 
             return ReadSamplesImpl(buffer, index, count, 16) * sizeof(short) / sizeof(float);
         }
 
         public int ReadSamplesInt8(byte[] buffer, int index, int count)
         {
-            if (index < 0 || index + count > buffer.Length * sizeof(float)) throw new ArgumentOutOfRangeException("index");
+            if (index < 0 || index + count > buffer.Length * sizeof(float)) throw new ArgumentOutOfRangeException(nameof(index));
 
             return ReadSamplesImpl(buffer, index, count, 8) * sizeof(byte) / sizeof(float);
         }

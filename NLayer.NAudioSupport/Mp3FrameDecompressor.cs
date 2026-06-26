@@ -40,7 +40,8 @@
 
         public void Dispose()
         {
-            // no-op, since we don't have anything to do here...
+            // nothing to free, but satisfy the Dispose pattern for derived types
+            System.GC.SuppressFinalize(this);
         }
     }
 }

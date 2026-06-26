@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace NLayer.Decoder
 {
-    class Huffman
+    sealed class Huffman
     {
         #region Hardcoded Tables (from the spec)
 
@@ -1052,7 +1052,7 @@ namespace NLayer.Decoder
             return list[0];
         }
 
-        class HuffmanListNode
+        sealed class HuffmanListNode
         {
             internal byte Value;
 

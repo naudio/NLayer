@@ -1,6 +1,6 @@
 ﻿namespace NLayer.Decoder
 {
-    class VBRInfo
+    sealed class VBRInfo
     {
         internal VBRInfo() { }
 

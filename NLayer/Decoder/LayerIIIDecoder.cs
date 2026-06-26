@@ -45,7 +45,7 @@ namespace NLayer.Decoder
         #region Child Classes
 
         // This class is based on the Fluendo hybrid logic.
-        class HybridMDCT
+        sealed class HybridMDCT
         {
             const float PI = (float)Math.PI;
 
@@ -580,7 +580,7 @@ namespace NLayer.Decoder
                         {
                             // reorder & antialias mixed blocks
                             Reorder(buf, true);
-                            AntiAlias(buf, true);
+                            LayerIIIDecoder.AntiAlias(buf, true);
                         }
                         else
                         {
@@ -591,14 +591,14 @@ namespace NLayer.Decoder
                     else
                     {
                         // antialias long blocks
-                        AntiAlias(buf, false);
+                        LayerIIIDecoder.AntiAlias(buf, false);
                     }
 
                     // hybrid processing
                     _hybrid.Apply(buf, ch, blockType, blockSplit && mixedBlock);
 
                     // frequency inversion
-                    FrequencyInversion(buf);
+                    LayerIIIDecoder.FrequencyInversion(buf);
 
                     // inverse polyphase
                     InversePolyphase(buf, ch, offset, chanBufs[ch]);
@@ -1881,7 +1881,7 @@ namespace NLayer.Decoder
 
         #endregion
 
-        void AntiAlias(float[] buf, bool mixedBlock)
+        static void AntiAlias(float[] buf, bool mixedBlock)
         {
             int sblim;
             if (mixedBlock)
@@ -1909,7 +1909,7 @@ namespace NLayer.Decoder
 
         #region Frequency Inversion
 
-        void FrequencyInversion(float[] buf)
+        static void FrequencyInversion(float[] buf)
         {
             for (int ss = 1; ss < SSLIMIT; ss += 2)
             {

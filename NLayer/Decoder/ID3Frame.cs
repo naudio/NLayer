@@ -5,7 +5,7 @@ using System.Text;
 
 namespace NLayer.Decoder
 {
-    class ID3Frame : FrameBase
+    sealed class ID3Frame : FrameBase
     {
         internal static ID3Frame TrySync(uint syncMark)
         {
@@ -91,18 +91,18 @@ namespace NLayer.Decoder
             switch (_version)
             {
                 case 2:
-                    ParseV2();
+                    ID3Frame.ParseV2();
                     break;
                 case 1:
-                    ParseV1Enh();
+                    ID3Frame.ParseV1Enh();
                     break;
                 case 0:
-                    ParseV1(3);
+                    ID3Frame.ParseV1(3);
                     break;
             }
         }
 
-        void ParseV1(int offset)
+        static void ParseV1(int offset)
         {
             //var buffer = new byte[125];
             //if (Read(offset, buffer) == 125)
@@ -138,9 +138,9 @@ namespace NLayer.Decoder
             //}
         }
 
-        void ParseV1Enh()
+        static void ParseV1Enh()
         {
-            ParseV1(230);
+            ID3Frame.ParseV1(230);
 
             //var buffer = new byte[223];
             //if (Read(4, buffer) == 223)
@@ -171,7 +171,7 @@ namespace NLayer.Decoder
             //}
         }
 
-        void ParseV2()
+        static void ParseV2()
         {
             // v2 is much more complicated than v1...  don't worry about it for now
             // look for any merged frames, as well
@@ -197,7 +197,7 @@ namespace NLayer.Decoder
         //public TimeSpan StartTime { get; private set; }
         //public TimeSpan EndTime { get; private set; }
 
-        internal void Merge(ID3Frame newFrame)
+        internal static void Merge(ID3Frame newFrame)
         {
             // just save off the frame for parsing later
         }

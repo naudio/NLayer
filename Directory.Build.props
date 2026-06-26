@@ -19,9 +19,13 @@
     <PackageIcon>naudio-icon.png</PackageIcon>
 
     <LangVersion>latest</LangVersion>
-    <!-- 0 compiler warnings today, so this is free; keeps the build clean.
-         (.NET code-analysis CA rules are not enabled here — see README.) -->
+    <!-- Treat warnings (compiler + analyzer) as errors to keep the build clean. -->
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- .NET code-analysis (CA) rules at the 8.0 'recommended' wave. Pinned to
+         8.0 (rather than 'latest') so a newer SDK can't silently introduce new
+         rules that break the build. Per-rule overrides live in .editorconfig. -->
+    <AnalysisLevel>8.0-recommended</AnalysisLevel>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
 
     <!-- Strong naming. The .snk lives at the repo root, anchored via
          $(MSBuildThisFileDirectory) so csprojs at any depth resolve it.
