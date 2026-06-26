@@ -1,0 +1,28 @@
+<Project>
+  <!--
+    Include the repo-root README in every packable NLayer NuGet package.
+    The README is anchored to the repo root via $(MSBuildThisFileDirectory)
+    so it resolves from any csproj depth. Non-packable projects (test/sample)
+    set <IsPackable>false</IsPackable>, so this include is silently inert
+    for them.
+  -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md" Pack="true" PackagePath="\" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)naudio-icon.png" Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!--
+    If PackageReleaseNotesFile is supplied (e.g. by the release workflow
+    passing -p:PackageReleaseNotesFile=<path>), load its contents into
+    PackageReleaseNotes so NuGet displays them on the package page.
+    No-op when the property is unset or the file is missing, so local
+    `dotnet pack` keeps working with no extra setup.
+  -->
+  <Target Name="LoadPackageReleaseNotesFromFile"
+          BeforeTargets="GenerateNuspec"
+          Condition="'$(PackageReleaseNotesFile)' != '' and Exists('$(PackageReleaseNotesFile)')">
+    <PropertyGroup>
+      <PackageReleaseNotes>$([System.IO.File]::ReadAllText('$(PackageReleaseNotesFile)'))</PackageReleaseNotes>
+    </PropertyGroup>
+  </Target>
+</Project>
