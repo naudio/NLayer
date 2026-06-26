@@ -38,7 +38,7 @@ Use this to put a preview on NuGet for testing before committing to a final
 version.
 
 1. Go to **Actions → release → Run workflow**.
-2. Select the **`master`** branch (the workflow refuses to dispatch from any
+2. Select the **`main`** branch (the workflow refuses to dispatch from any
    other branch).
 3. Optionally fill in **`milestone`**:
    - **Leave blank** → ships `…-preview.<run_number>` (auto-incrementing), e.g.
@@ -55,13 +55,13 @@ You can trigger the same `workflow_dispatch` with the
 
 ```sh
 # Auto preview.<run_number>, e.g. 2.0.0-preview.42
-gh workflow run release.yml --ref master
+gh workflow run release.yml --ref main
 
 # Named milestone, e.g. 2.0.0-rc.1
-gh workflow run release.yml --ref master -f milestone=rc.1
+gh workflow run release.yml --ref main -f milestone=rc.1
 ```
 
-`--ref master` is required — the workflow refuses to dispatch from any other
+`--ref main` is required — the workflow refuses to dispatch from any other
 branch. To watch the run you just started:
 
 ```sh
@@ -89,7 +89,7 @@ No `git` tag and no GitHub Release are created for pre-releases.
 
    The workflow **fails fast** if a final release has no matching
    `### <version> (…)` section, so don't skip this.
-3. **Commit** both changes to `master` (via PR).
+3. **Commit** both changes to `main` (via PR).
 4. **Tag and push:**
 
    ```sh
@@ -141,7 +141,7 @@ steps succeed before tagging your first final release.
 
 | Symptom | Cause / fix |
 | --- | --- |
-| `Release dispatch must be from master` | You ran the workflow from another branch. Re-run it from `master`. |
+| `Release dispatch must be from main` | You ran the workflow from another branch. Re-run it from `main`. |
 | `Tag vX.Y.Z does not match VersionPrefix …` | The tag and `<VersionPrefix>` differ. Bump the prefix (or fix the tag), commit, delete the bad tag, and retag. |
 | `RELEASE_NOTES.md has no '### X.Y.Z (...)' section` | Rename `### Unreleased` to `### X.Y.Z (DD MMM YYYY)` before tagging. |
 | NuGet login/push fails with an auth error | Trusted publishing isn't configured, or `NUGET_USER` is missing/wrong. See [one-time setup](#one-time-setup-trusted-publishing). |

@@ -1,10 +1,10 @@
 name: build
 
-# Build & test on every PR, every push to master, and on demand.
+# Build & test on every PR, every push to main, and on demand.
 on:
   pull_request:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 jobs:

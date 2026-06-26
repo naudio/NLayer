@@ -79,7 +79,7 @@ workflow, which uses NuGet trusted publishing (OIDC) — no API key is stored in
 the repository.
 
 - **Pre-release:** run the `release` workflow manually (Actions → release →
-  Run workflow) from `master`. It publishes `<VersionPrefix>-preview.<run>`,
+  Run workflow) from `main`. It publishes `<VersionPrefix>-preview.<run>`,
   or pass a `milestone` such as `rc.1` for `<VersionPrefix>-rc.1`.
 - **Final release:** bump `<VersionPrefix>`, rename the `### Unreleased`
   heading in `RELEASE_NOTES.md` to `### <version> (DD MMM YYYY)`, commit, then
