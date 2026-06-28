@@ -14,6 +14,10 @@ section matching the version being shipped:
 
 ### Unreleased
 
+<!-- Add notes for the next release here as PRs land. -->
+
+### 2.0.0 (28 Jun 2026)
+
 - Modernised build: dropped `netstandard1.3`; packages now target
   `netstandard2.0` and `net8.0`.
 - Unified `NLayer` and `NLayer.NAudioSupport` on a single version (2.0.0).
