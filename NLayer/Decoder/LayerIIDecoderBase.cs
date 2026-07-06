@@ -274,8 +274,10 @@ namespace NLayer.Decoder
                                 if (alloc < 0)
                                 {
                                     // grouping (Layer II only, so we don't have to play with the granule count)
+                                    // NB: 3 samples are packed in one -alloc-bit codeword; the digit base
+                                    //     is nlevels (3, 5, or 9), one power of two below the C/D index.
                                     var val = frame.ReadBits(-alloc);
-                                    var levels = (1 << (-alloc / 2 + -alloc % 2 - 1)) + 1;
+                                    var levels = (1 << (-alloc / 2 + -alloc % 2 - 2)) + 1;
 
                                     _samples[ch][idx] = val % levels;
                                     val /= levels;
