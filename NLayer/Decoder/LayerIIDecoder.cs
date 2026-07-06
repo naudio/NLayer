@@ -65,9 +65,9 @@ namespace NLayer.Decoder
                                                         new int[] { 4,  0, -5, -7,  3,-10,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 16 }, // 2 (II)
                                                         new int[] { 4,  0, -5,  3,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15, 16 }, // 3 (II)
                                                         new int[] { 4,  0, -5, -7,-10,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14, 15 }, // 4 (II, 4, 4 bits per alloc)
-                                                        new int[] { 3,  0, -5, -7,-10,  4,  5,  6,  9 },                                 // 5 (II, 4, 3 bits per alloc)
+                                                        new int[] { 3,  0, -5, -7,-10,  4,  5,  6,  7 },                                 // 5 (II, 4, 3 bits per alloc)
                                                         new int[] { 4,  0, -5, -7,  3,-10,  4,  5,  6,  7,  8,  9, 10, 11, 12, 13, 14 }, // 6 (II)
-                                                        new int[] { 2,  0, -5, -7,  3 },                                                 // 7 (II, 4, 2 bits per alloc)
+                                                        new int[] { 2,  0, -5, -7,-10 },                                                 // 7 (II, 4, 2 bits per alloc)
                                                     };
 
         internal LayerIIDecoder() : base(_allocLookupTable, 3) { }
