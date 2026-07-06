@@ -16,6 +16,17 @@ section matching the version being shipped:
 
 <!-- Add notes for the next release here as PRs land. -->
 
+### 2.0.1 (6 Jul 2026)
+
+- Fixed Layer II decoding of grouped samples (closes #55). Three consecutive
+  samples of a low-allocation subband are packed into one codeword; the decoder
+  split it with the wrong radix (5/9/17 instead of 3/5/9), and two bit-allocation
+  table entries named the wrong quantization class. Together these distorted
+  Layer II audio — most audibly on low-bitrate MPEG-2 (LSF) streams — with loss of
+  bass and added high-frequency noise. Thanks @tokula for the fix in #56.
+- Added regression tests covering the grouped-sample radix and the corrected
+  bit-allocation tables.
+
 ### 2.0.0 (28 Jun 2026)
 
 - Modernised build: dropped `netstandard1.3`; packages now target
