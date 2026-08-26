@@ -14,7 +14,19 @@ section matching the version being shipped:
 
 ### Unreleased
 
-<!-- Add notes for the next release here as PRs land. -->
+<!-- Add notes for the next release here as PRs land. Rename this heading to
+     `### 3.0.0 (DD MMM YYYY)` before tagging v3.0.0. -->
+
+- **`NLayer.NAudioSupport` now targets NAudio 3** (`NAudio.Core` 3.0.1). NAudio 3
+  dropped .NET Framework and `netstandard2.0`, so this package is now `net9.0`
+  only. Consumers on NAudio 2, .NET Framework, Unity or Mono should stay on
+  `NLayer.NAudioSupport` 2.x — mixing 3.x with an NAudio 2 install resolves
+  `NAudio.Core` up to 3.x and fails at runtime rather than at compile time.
+- `NLayer` itself is unchanged and still targets `netstandard2.0` and `net8.0`,
+  so the decoder remains available on every platform it already supported. The
+  major version bump only reflects the lockstep versioning of the two packages.
+- Added tests covering the NAudio bridge (`Mp3FrameDecompressor`,
+  `ManagedMpegStream` and `Mp3FileReaderBase` end to end) against NAudio 3.
 
 ### 2.0.1 (6 Jul 2026)
 

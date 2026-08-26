@@ -9,7 +9,7 @@ on:
 
 jobs:
   build:
-    # windows-latest so the net8.0-windows TestApp (WinForms) builds too.
+    # windows-latest so the net9.0-windows TestApp (WinForms) builds too.
     runs-on: windows-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 9.0.x
 
       - name: Restore
         run: dotnet restore NLayer.sln

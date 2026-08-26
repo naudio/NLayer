@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net9.0</TargetFramework>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <IsTestProject>true</IsTestProject>
@@ -15,6 +15,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\NLayer\NLayer.csproj" />
+    <!-- NLayer.NAudioSupport is net9.0 (it references NAudio.Core 3.x), which is
+         why this project targets net9.0 rather than net8.0. NLayer itself is
+         still multi-targeted; these tests exercise its net8.0 asset. -->
+    <ProjectReference Include="..\NLayer.NAudioSupport\NLayer.NAudioSupport.csproj" />
   </ItemGroup>
 
 </Project>
