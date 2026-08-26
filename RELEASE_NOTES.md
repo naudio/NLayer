@@ -25,8 +25,18 @@ section matching the version being shipped:
 - `NLayer` itself is unchanged and still targets `netstandard2.0` and `net8.0`,
   so the decoder remains available on every platform it already supported. The
   major version bump only reflects the lockstep versioning of the two packages.
+- `Mp3FrameDecompressor` and `ManagedMpegStream` now implement NAudio 3's
+  `Span<byte>` overloads (`IMp3FrameDecompressor.DecompressFrame` and
+  `Stream.Read`) directly. NAudio 3 calls the span overload for every frame, and
+  its default implementation rents a pooled `byte[]` and copies through it; that
+  round trip is now gone.
+- `MpegFile.ReadSamples` and `MpegFrameDecoder.DecodeFrame` gained `Span<byte>`
+  and `Span<float>` overloads to support the above. They are compiled into the
+  `net8.0` asset only, so the `netstandard2.0` build keeps its dependency-free
+  package graph.
 - Added tests covering the NAudio bridge (`Mp3FrameDecompressor`,
-  `ManagedMpegStream` and `Mp3FileReaderBase` end to end) against NAudio 3.
+  `ManagedMpegStream` and `Mp3FileReaderBase` end to end) against NAudio 3, and
+  tests pinning the span paths to byte-for-byte parity with the array ones.
 
 ### 2.0.1 (6 Jul 2026)
 

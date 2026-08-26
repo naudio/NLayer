@@ -1,4 +1,6 @@
-﻿namespace NLayer.NAudioSupport
+﻿using System;
+
+namespace NLayer.NAudioSupport
 {
     public class Mp3FrameDecompressor : NAudio.Wave.IMp3FrameDecompressor
     {
@@ -31,6 +33,17 @@
         {
             _frame.WrappedFrame = frame;
             return _decoder.DecodeFrame(_frame, dest, destOffset);
+        }
+
+        /// <summary>
+        /// NAudio 3 calls this overload for every frame. Implementing it here decodes
+        /// straight into the caller's span; the default interface implementation would
+        /// otherwise rent a byte[] from the shared pool and copy through it.
+        /// </summary>
+        public int DecompressFrame(NAudio.Wave.Mp3Frame frame, Span<byte> dest)
+        {
+            _frame.WrappedFrame = frame;
+            return _decoder.DecodeFrame(_frame, dest);
         }
 
         public NAudio.Wave.WaveFormat OutputFormat { get; private set; }

@@ -72,6 +72,12 @@ If you are still on NAudio 2, or need .NET Framework / Unity / Mono, stay on
 still `netstandard2.0` and `net8.0` on both lines, so the decoder remains
 available everywhere it always was.
 
+On 3.x, `Mp3FrameDecompressor` and `ManagedMpegStream` implement NAudio 3's
+`Span<byte>` overloads directly, so decoding does not bounce through a pooled
+`byte[]`. `MpegFile` and `MpegFrameDecoder` gained matching `Span<T>` overloads
+for that; they are compiled into the `net8.0` asset only, so the
+`netstandard2.0` build stays free of a `System.Memory` dependency.
+
 ## Building
 
 ```sh

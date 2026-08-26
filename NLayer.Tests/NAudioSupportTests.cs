@@ -158,6 +158,96 @@ namespace NLayer.Tests
             Assert.True(Rms(buffer, read) > 0.1, "Expected the Layer II tone fixture to decode to audible audio");
         }
 
+        [Fact]
+        public void Decompressor_span_overload_matches_the_byte_array_overload()
+        {
+            // Layer II tone rather than Layer III silence: comparing two buffers of
+            // zeros would pass whatever the copy did. Two decompressors, because the
+            // decoder carries state from frame to frame.
+            var mp3 = LayerIIMp3.CreateTone(8);
+            var sourceFormat = new Mp3WaveFormat(LayerIIMp3.SampleRate, LayerIIMp3.Channels, LayerIIMp3.FrameLength, 32000);
+
+            using var viaArray = new Mp3FrameDecompressor(sourceFormat);
+            // Typed as the interface, because that is how NAudio calls it - and it is the
+            // interface dispatch that decides whether the pooled default kicks in.
+            using IMp3FrameDecompressor viaSpan = new Mp3FrameDecompressor(sourceFormat);
+
+            using var arrayStream = new MemoryStream(mp3);
+            using var spanStream = new MemoryStream(mp3);
+
+            var arrayBuffer = new byte[LayerIIMp3.SamplesPerFrame * 2 * sizeof(float)];
+            var spanBuffer = new byte[arrayBuffer.Length];
+
+            var frames = 0;
+            Mp3Frame frame;
+            while ((frame = Mp3Frame.LoadFromStream(arrayStream)) != null)
+            {
+                var spanFrame = Mp3Frame.LoadFromStream(spanStream);
+                Assert.NotNull(spanFrame);
+
+                var writtenToArray = viaArray.DecompressFrame(frame, arrayBuffer, 0);
+                var writtenToSpan = viaSpan.DecompressFrame(spanFrame, spanBuffer.AsSpan());
+
+                Assert.Equal(writtenToArray, writtenToSpan);
+                Assert.Equal(arrayBuffer.AsSpan(0, writtenToArray).ToArray(), spanBuffer.AsSpan(0, writtenToSpan).ToArray());
+                frames++;
+            }
+
+            Assert.True(frames > 1, $"Expected several frames from the fixture, got {frames}");
+            Assert.True(Rms(arrayBuffer, arrayBuffer.Length) > 0.1, "Expected the fixture to decode to audible audio");
+        }
+
+        [Fact]
+        public void Decompressor_implements_the_span_overload_rather_than_inheriting_the_default()
+        {
+            // NAudio 3 declares DecompressFrame(Mp3Frame, Span<byte>) as a default
+            // interface method that rents a pooled byte[] and routes to the byte[]
+            // overload. That fallback is invisible at runtime, so if the signature here
+            // ever drifts the only symptom is a silent per-frame rent and copy. Assert
+            // on the interface map instead.
+            var map = typeof(Mp3FrameDecompressor).GetInterfaceMap(typeof(IMp3FrameDecompressor));
+            var index = Array.FindIndex(map.InterfaceMethods, m =>
+                m.Name == nameof(IMp3FrameDecompressor.DecompressFrame) &&
+                m.GetParameters().Length == 2 &&
+                m.GetParameters()[1].ParameterType == typeof(Span<byte>));
+
+            Assert.True(index >= 0, "IMp3FrameDecompressor no longer declares a Span<byte> DecompressFrame overload");
+            Assert.Equal(typeof(Mp3FrameDecompressor), map.TargetMethods[index].DeclaringType);
+        }
+
+        [Fact]
+        public void Decompressor_span_overload_rejects_a_span_that_is_too_small()
+        {
+            var frame = FirstFrame(SilentMp3.Create(2));
+            var sourceFormat = new Mp3WaveFormat(frame.SampleRate, 2, frame.FrameLength, frame.BitRate);
+            using IMp3FrameDecompressor decompressor = new Mp3FrameDecompressor(sourceFormat);
+
+            var tooSmall = new byte[64];
+            Assert.Throws<ArgumentException>(() => decompressor.DecompressFrame(frame, tooSmall.AsSpan()));
+        }
+
+        [Fact]
+        public void ManagedMpegStream_span_read_matches_the_byte_array_read()
+        {
+            using var viaArray = new ManagedMpegStream(new MemoryStream(LayerIIMp3.CreateTone(8)), closeOnDispose: true);
+            using var viaSpan = new ManagedMpegStream(new MemoryStream(LayerIIMp3.CreateTone(8)), closeOnDispose: true);
+
+            var arrayBuffer = new byte[1024];
+            var spanBuffer = new byte[1024];
+
+            int readFromArray, total = 0;
+            while ((readFromArray = viaArray.Read(arrayBuffer, 0, arrayBuffer.Length)) > 0)
+            {
+                var readFromSpan = viaSpan.Read(spanBuffer.AsSpan());
+
+                Assert.Equal(readFromArray, readFromSpan);
+                Assert.Equal(arrayBuffer.AsSpan(0, readFromArray).ToArray(), spanBuffer.AsSpan(0, readFromSpan).ToArray());
+                total += readFromArray;
+            }
+
+            Assert.True(total > 0, "Expected the tone fixture to decode to something");
+        }
+
         private static double Rms(byte[] buffer, int byteCount)
         {
             var samples = MemoryMarshal.Cast<byte, float>(buffer.AsSpan(0, byteCount));
