@@ -344,9 +344,11 @@ namespace NLayer
             var temp = _readBufLen - _readBufOfs;
             if (temp > count) temp = count;
 
-            // Don't deliver past the logical end
-            var remaining = (int)(totalBytes - _position);
-            if (temp > remaining) temp = remaining;
+            // Don't deliver past the logical end. totalBytes is long.MaxValue when the
+            // stream's length is unknown (a non-seekable source with no VBR header), so
+            // stay in long arithmetic: truncating that subtraction to int wraps negative.
+            var remaining = totalBytes - _position;
+            if (temp > remaining) temp = (int)remaining;
 
             return temp;
         }

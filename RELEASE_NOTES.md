@@ -37,6 +37,11 @@ section matching the version being shipped:
 - Added tests covering the NAudio bridge (`Mp3FrameDecompressor`,
   `ManagedMpegStream` and `Mp3FileReaderBase` end to end) against NAudio 3, and
   tests pinning the span paths to byte-for-byte parity with the array ones.
+- Fixed reading from a non-seekable stream, broken since 2.0.1. Such a stream has
+  no known sample count, which the end-of-stream trimming added in 2.0.1
+  represented as `long.MaxValue`; subtracting the read position from it and
+  truncating to `int` wrapped negative, so the very first read threw
+  `ArgumentOutOfRangeException`.
 
 ### 2.0.1 (6 Jul 2026)
 
