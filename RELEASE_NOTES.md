@@ -12,10 +12,7 @@ section matching the version being shipped:
 <!-- Lines wrapped in HTML comments are stripped before the notes reach NuGet
      and the GitHub Release, so use them for contributor-facing reminders. -->
 
-### Unreleased
-
-<!-- Add notes for the next release here as PRs land. Rename this heading to
-     `### 3.0.0 (DD MMM YYYY)` before tagging v3.0.0. -->
+### 3.0.0 (27 Aug 2026)
 
 - **`NLayer.NAudioSupport` now targets NAudio 3** (`NAudio.Core` 3.0.1). NAudio 3
   dropped .NET Framework and `netstandard2.0`, so this package is now `net9.0`
