@@ -52,9 +52,19 @@ namespace NLayer.NAudioSupport
             get { return _fileDecoder.StereoMode; }
         }
 
+        /// <summary>
+        /// The real read implementation. NAudio 3 pipelines read through
+        /// <see cref="Stream.Read(Span{byte})"/>, so implementing it here avoids the
+        /// pooled byte[] bridge that <see cref="Stream"/> would otherwise interpose.
+        /// </summary>
+        public override int Read(Span<byte> buffer)
+        {
+            return this._fileDecoder.ReadSamples(buffer);
+        }
+
         public override int Read(byte[] buffer, int offset, int count)
         {
-            return this._fileDecoder.ReadSamples(buffer, offset, count);
+            return Read(buffer.AsSpan(offset, count));
         }
 
         protected override void Dispose(bool disposing)

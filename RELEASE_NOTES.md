@@ -12,9 +12,33 @@ section matching the version being shipped:
 <!-- Lines wrapped in HTML comments are stripped before the notes reach NuGet
      and the GitHub Release, so use them for contributor-facing reminders. -->
 
-### Unreleased
+### 3.0.0 (27 Aug 2026)
 
-<!-- Add notes for the next release here as PRs land. -->
+- **`NLayer.NAudioSupport` now targets NAudio 3** (`NAudio.Core` 3.0.1). NAudio 3
+  dropped .NET Framework and `netstandard2.0`, so this package is now `net9.0`
+  only. Consumers on NAudio 2, .NET Framework, Unity or Mono should stay on
+  `NLayer.NAudioSupport` 2.x — mixing 3.x with an NAudio 2 install resolves
+  `NAudio.Core` up to 3.x and fails at runtime rather than at compile time.
+- `NLayer` itself is unchanged and still targets `netstandard2.0` and `net8.0`,
+  so the decoder remains available on every platform it already supported. The
+  major version bump only reflects the lockstep versioning of the two packages.
+- `Mp3FrameDecompressor` and `ManagedMpegStream` now implement NAudio 3's
+  `Span<byte>` overloads (`IMp3FrameDecompressor.DecompressFrame` and
+  `Stream.Read`) directly. NAudio 3 calls the span overload for every frame, and
+  its default implementation rents a pooled `byte[]` and copies through it; that
+  round trip is now gone.
+- `MpegFile.ReadSamples` and `MpegFrameDecoder.DecodeFrame` gained `Span<byte>`
+  and `Span<float>` overloads to support the above. They are compiled into the
+  `net8.0` asset only, so the `netstandard2.0` build keeps its dependency-free
+  package graph.
+- Added tests covering the NAudio bridge (`Mp3FrameDecompressor`,
+  `ManagedMpegStream` and `Mp3FileReaderBase` end to end) against NAudio 3, and
+  tests pinning the span paths to byte-for-byte parity with the array ones.
+- Fixed reading from a non-seekable stream, broken since 2.0.1. Such a stream has
+  no known sample count, which the end-of-stream trimming added in 2.0.1
+  represented as `long.MaxValue`; subtracting the read position from it and
+  truncating to `int` wrapped negative, so the very first read threw
+  `ArgumentOutOfRangeException`.
 
 ### 2.0.1 (6 Jul 2026)
 

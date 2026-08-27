@@ -7,6 +7,9 @@ NLayer is a fully managed, MIT-licensed MP3 to WAV decoder implemented in C# bas
 
 NLayer targets `netstandard2.0` and `net8.0`, so it runs on .NET Framework 4.6.1+, .NET 8+, Unity, and Mono.
 
+`NLayer.NAudioSupport` targets `net9.0`, because NAudio 3 does — see
+[Which NLayer.NAudioSupport version?](#which-nlayernaudiosupport-version) below.
+
 ## Usage
 
 To use NLayer for decoding MP3, first reference NLayer.
@@ -51,9 +54,29 @@ waveOut.Init(reader);
 waveOut.Play();
 ```
 
-> `NLayer.NAudioSupport` currently targets NAudio 2. NAudio 3 support (which
-> carries breaking `Span<T>` API changes) will follow once the NAudio 3 API
-> stabilises.
+### Which NLayer.NAudioSupport version?
+
+NAudio 3 dropped .NET Framework and `netstandard2.0`: `NAudio.Core` 3.x ships a
+single `net9.0` assembly. `NLayer.NAudioSupport` therefore comes in two lines,
+and picking the wrong one is not a compile error — NuGet will happily unify
+`NAudio.Core` up to 3.x behind the rest of an NAudio 2 install and fail at
+runtime instead.
+
+| NLayer.NAudioSupport | Targets    | Works with |
+| -------------------- | ---------- | ---------- |
+| 3.x                  | `net9.0`   | NAudio 3   |
+| 2.x                  | `netstandard2.0`, `net8.0` | NAudio 2 |
+
+If you are still on NAudio 2, or need .NET Framework / Unity / Mono, stay on
+`NLayer.NAudioSupport` 2.x. The `NLayer` package itself is unaffected: it is
+still `netstandard2.0` and `net8.0` on both lines, so the decoder remains
+available everywhere it always was.
+
+On 3.x, `Mp3FrameDecompressor` and `ManagedMpegStream` implement NAudio 3's
+`Span<byte>` overloads directly, so decoding does not bounce through a pooled
+`byte[]`. `MpegFile` and `MpegFrameDecoder` gained matching `Span<T>` overloads
+for that; they are compiled into the `net8.0` asset only, so the
+`netstandard2.0` build stays free of a `System.Memory` dependency.
 
 ## Building
 

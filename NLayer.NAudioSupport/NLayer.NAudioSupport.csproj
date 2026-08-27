@@ -1,13 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netstandard2.0;net8.0</TargetFrameworks>
+    <!-- NAudio.Core 3.x ships a single net9.0 assembly (NAudio 3 dropped
+         .NET Framework and netstandard2.0), so this package cannot be
+         multi-targeted the way NLayer itself is. Consumers on netstandard2.0
+         or .NET Framework should stay on NLayer.NAudioSupport 2.x, which
+         targets NAudio 2. -->
+    <TargetFramework>net9.0</TargetFramework>
     <Description>NAudio support for NLayer</Description>
     <PackageTags>NAudio NLayer MP3 audio</PackageTags>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="NAudio.Core" Version="2.0.0" />
+    <PackageReference Include="NAudio.Core" Version="3.0.1" />
   </ItemGroup>
 
   <ItemGroup>

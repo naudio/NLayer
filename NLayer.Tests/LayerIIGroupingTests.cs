@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.IO;
 using Xunit;
 
@@ -26,114 +25,30 @@ namespace NLayer.Tests
     /// </summary>
     public class LayerIIGroupingTests
     {
-        // MSB-first bit writer for assembling a frame by hand.
-        private sealed class BitWriter
-        {
-            private readonly List<byte> _bytes = new List<byte>();
-            private int _cur, _nbits;
-
-            public void Write(int value, int bits)
-            {
-                for (var i = bits - 1; i >= 0; i--)
-                {
-                    _cur = (_cur << 1) | ((value >> i) & 1);
-                    if (++_nbits == 8) { _bytes.Add((byte)_cur); _cur = 0; _nbits = 0; }
-                }
-            }
-
-            public byte[] ToArray(int totalLength)
-            {
-                if (_nbits > 0) { _bytes.Add((byte)(_cur << (8 - _nbits))); _cur = 0; _nbits = 0; }
-                var a = new byte[totalLength];
-                Array.Copy(_bytes.ToArray(), a, Math.Min(_bytes.Count, totalLength));
-                return a;
-            }
-        }
-
-        // Builds one MPEG-1 Layer II frame: 32 kbps, 44.1 kHz, mono, no CRC.
+        // The frame builders live in LayerIIMp3 so other tests can reuse the same
+        // hand-assembled Layer II fixtures. The comments below record what each
+        // fixture is for in the context of this regression.
         //
-        // At this bit rate the decoder selects the "low-rate, 8 subband" allocation
-        // layout. We activate only subband 0 with allocation index 1, which maps to
-        // the grouped -5 entry (3 quantization levels, a 5-bit codeword). Every
-        // other subband is left at allocation 0 (silence), so the whole frame is
-        // driven by a single grouped codeword repeated across all 12 subsamples.
-        //
-        // With scalefactor index 3 (denormal multiplier 1.0) and codeword 26 the
-        // three grouped samples are (2, 2, 2) - the top level of a 3-level
+        // BuildGroupedFrame activates only subband 0 at allocation index 1, which maps
+        // to the grouped -5 entry (3 quantization levels, a 5-bit codeword), so the
+        // whole frame is driven by a single grouped codeword repeated across all 12
+        // subsamples. With scalefactor index 3 (denormal multiplier 1.0) and codeword
+        // 26 the three grouped samples are (2, 2, 2) - the top level of a 3-level
         // quantizer - so every reconstructed subband-0 value is +2/3 and the frame
         // decodes to a near-constant tone of magnitude ~0.667.
         //
         // The off-by-one radix (5) instead of 3 mis-splits 26 into (1, 0, 1) and
         // drops the RMS to ~0.385, so the two behaviours are clearly separable.
-        private const int FrameLength = 104;   // 144 * 32000 / 44100
-        private const int SamplesPerFrame = 1152;
-
-        private static byte[] BuildFrame(int groupedCodeword, int scalefacIndex)
-        {
-            var bw = new BitWriter();
-
-            // Header FF FD 10 C0: sync, MPEG-1, Layer II, no CRC, 32 kbps, 44.1 kHz, mono.
-            bw.Write(0xFF, 8);
-            bw.Write(0xFD, 8);
-            bw.Write(0x10, 8);
-            bw.Write(0xC0, 8);
-
-            // Allocations: subband 0 uses a 4-bit field (index 1 -> grouped -5);
-            // subband 1 also 4-bit (0); subbands 2..7 use 3-bit fields (all 0).
-            bw.Write(1, 4);
-            bw.Write(0, 4);
-            for (var sb = 2; sb < 8; sb++) bw.Write(0, 3);
-
-            // Scalefactor selection for the single active subband: 2 => one scalefactor.
-            bw.Write(2, 2);
-
-            // The one 6-bit scalefactor (index 3 => multiplier 1.0).
-            bw.Write(scalefacIndex, 6);
-
-            // 12 subsamples of subband 0, each a 5-bit grouped codeword.
-            for (var ss = 0; ss < 12; ss++) bw.Write(groupedCodeword, 5);
-
-            return bw.ToArray(FrameLength);
-        }
+        //
+        // BuildLinearFrame instead drives subband 2 (which uses allocation table 5) at
+        // allocation index 7 - the highest 3-bit class. With the corrected table that
+        // class is 127 levels: a linear, non-grouped 7-bit sample. The regressed table
+        // named 511 levels (9 bits), so the same bytes are read 9 bits at a time and
+        // mis-decoded.
+        private const int SamplesPerFrame = LayerIIMp3.SamplesPerFrame;
 
         private static byte[] BuildStream(int groupedCodeword, int scalefacIndex, int frameCount)
-        {
-            var frame = BuildFrame(groupedCodeword, scalefacIndex);
-            return Repeat(frame, frameCount);
-        }
-
-        // Same header/layout as BuildFrame, but drives subband 2 (which uses
-        // allocation table 5) at allocation index 7 - the highest 3-bit class. With
-        // the corrected table that class is 127 levels: a linear, non-grouped 7-bit
-        // sample. The regressed table named 511 levels (9 bits), so the same bytes
-        // are read 9 bits at a time and mis-decoded.
-        private static byte[] BuildLinearFrame(int sampleValue, int scalefacIndex)
-        {
-            var bw = new BitWriter();
-            bw.Write(0xFF, 8); bw.Write(0xFD, 8); bw.Write(0x10, 8); bw.Write(0xC0, 8);
-
-            bw.Write(0, 4);                                   // subband 0 (table 4) = 0
-            bw.Write(0, 4);                                   // subband 1 (table 4) = 0
-            bw.Write(7, 3);                                   // subband 2 (table 5) = index 7
-            for (var sb = 3; sb < 8; sb++) bw.Write(0, 3);    // subbands 3..7 = 0
-
-            bw.Write(2, 2);                                   // scfsi for subband 2: one scalefactor
-            bw.Write(scalefacIndex, 6);
-
-            // subband 2 samples: non-grouped 7-bit values, 3 granules per subsample.
-            for (var ss = 0; ss < 12; ss++)
-                for (var gr = 0; gr < 3; gr++)
-                    bw.Write(sampleValue, 7);
-
-            return bw.ToArray(FrameLength);
-        }
-
-        private static byte[] Repeat(byte[] frame, int frameCount)
-        {
-            var data = new byte[frame.Length * frameCount];
-            for (var i = 0; i < frameCount; i++) Array.Copy(frame, 0, data, i * frame.Length, frame.Length);
-            return data;
-        }
+            => LayerIIMp3.Repeat(LayerIIMp3.BuildGroupedFrame(groupedCodeword, scalefacIndex), frameCount);
 
         private static (double rms, double peak, long count) Decode(byte[] stream)
         {
@@ -199,7 +114,7 @@ namespace NLayer.Tests
             // The regressed table read this class as 9 bits per sample, so it slices
             // the same repeating byte pattern into different values, desyncs, and
             // produces a loud ~0.82 RMS. The bound below sits far below that.
-            var (rms, peak, count) = Decode(Repeat(BuildLinearFrame(sampleValue: 64, scalefacIndex: 3), frameCount: 6));
+            var (rms, peak, count) = Decode(LayerIIMp3.Repeat(LayerIIMp3.BuildLinearFrame(sampleValue: 64, scalefacIndex: 3), frameCount: 6));
 
             Assert.True(count >= SamplesPerFrame, $"Expected at least one decoded frame, got {count} samples");
             Assert.True(rms < 0.1, $"Expected near-silence (~0.016) but RMS was {rms}; the pre-#56 table gives ~0.82");
