@@ -12,13 +12,14 @@ section matching the version being shipped:
 <!-- Lines wrapped in HTML comments are stripped before the notes reach NuGet
      and the GitHub Release, so use them for contributor-facing reminders. -->
 
-### Unreleased
+### 3.0.1 (4 Nov 2026)
 
 - **Fixed Layer III frames being dropped or decoded as noise** when a frame's
   main data filled the bit reservoir exactly to the end of its ring buffer
   (issue #59). The following frame was mistaken for the start of the stream.
   Constant-bitrate 48 kHz and 32 kHz files hit this on a fixed schedule (e.g.
   every 2048 frames at 320 kbps); padded 44.1 kHz streams hit it occasionally.
+  Thanks @SeisaFuko for the detailed report.
 
 ### 3.0.0 (27 Aug 2026)
 
