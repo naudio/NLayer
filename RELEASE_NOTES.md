@@ -14,6 +14,19 @@ section matching the version being shipped:
 
 ### Unreleased
 
+- **Gapless trimming now follows the LAME spec.** A LAME tag's `delay` is the encoder's delay only; the decoder
+  now also skips the Layer III filterbank's 529 samples and trims `padding − 529` at the end. Output from
+  LAME-tagged files used to start with 529 samples of warm-up and stop 529 samples before the real end. The
+  trimmed `Length` is unchanged (it is clamped when the padding is under 529, so it never exceeds what can be read).
+- **MP3s encoded by FFmpeg are trimmed.** Their LAME tag carries FFmpeg's encoder name (`Lavc…`, `Lavf…`) and was
+  ignored. Delay and padding now always come from one source (the LAME tag, else iTunSMPB).
+- **Seeking lands on the exact sample.** `Position` counts in the trimmed timeline, and a seek resumes on exactly
+  the requested sample instead of a frame boundary. It pre-rolls as many frames as the stream's bit reservoir can
+  reach back (up to 25 at 8 kbps), so the target frame is no longer dropped, which used to resume playback a frame
+  late at low bitrates and after a VBR seek. Seeks past the end now throw consistently.
+- Fixed a frame whose main data reaches back past a seek or resync being decoded from stale reservoir bytes
+  (audible as a burst of noise) instead of being skipped.
+
 ### 3.0.1 (4 Nov 2026)
 
 - **Fixed Layer III frames being dropped or decoded as noise** when a frame's

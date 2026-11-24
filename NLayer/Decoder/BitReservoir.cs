@@ -15,6 +15,10 @@ namespace NLayer.Decoder
         bool _hasData = false;
         long _bitsRead = 0L;
 
+        // Bytes written since construction / Reset(), so a frame whose main_data_begin reaches further back than that is
+        //  refused rather than decoded from whatever the ring held before the Reset (a seek, a resync).
+        long _bytesSinceReset = 0L;
+
         static int GetSlots(IMpegFrame frame)
         {
             var cnt = frame.FrameLength - 4;
@@ -30,6 +34,7 @@ namespace NLayer.Decoder
         {
             var originalEnd = _end;
             var wasEmpty = !_hasData;
+            var writtenBefore = _bytesSinceReset;
 
             var slots = GetSlots(frame);
             while (--slots >= 0)
@@ -41,6 +46,7 @@ namespace NLayer.Decoder
             }
 
             _hasData = true;
+            _bytesSinceReset += GetSlots(frame);
             _bitsLeft = 8;
             if (wasEmpty)
             {
@@ -52,12 +58,15 @@ namespace NLayer.Decoder
                 // it's not the start of the stream so calculate _start based on whether we have enough bytes left
 
                 // if we have enough bytes, reset start to match overlap
-                if ((originalEnd + 1 - _start + _buf.Length) % _buf.Length >= overlap)
+                if (overlap <= writtenBefore && (originalEnd + 1 - _start + _buf.Length) % _buf.Length >= overlap)
                 {
                     _start = (originalEnd + 1 - overlap + _buf.Length) % _buf.Length;
                     return true;
                 }
-                // otherwise, just set start to match the start of the frame (we probably skipped a frame)
+                // otherwise the frame's main data begins in bytes we never received (we probably skipped a frame, or
+                //  this is the first frame after a seek): refuse it. The overlap <= writtenBefore test above is what keeps
+                //  a later frame from "finding" enough bytes through the modulo and decoding from bytes written before
+                //  the Reset.
                 else
                 {
                     _start = (originalEnd + overlap) % _buf.Length;
@@ -211,6 +220,7 @@ namespace NLayer.Decoder
             _end = -1;
             _bitsLeft = 0;
             _hasData = false;
+            _bytesSinceReset = 0L;
         }
     }
 }

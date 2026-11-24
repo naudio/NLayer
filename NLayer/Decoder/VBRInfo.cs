@@ -13,6 +13,7 @@
         internal int VBRDelay { get; set; }
         internal int EncoderDelay { get; set; }
         internal int EncoderPadding { get; set; }
+        internal bool HasLameTag { get; set; }
 
         internal long VBRStreamSampleCount
         {

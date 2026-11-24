@@ -567,24 +567,43 @@ namespace NLayer.Decoder
             }
         }
 
+        // The delay and the padding come from ONE source: a LAME tag that states either (a 0/0 tag means "no gapless
+        // information"), else the ID3v2 iTunSMPB tag. Taking each from wherever it is non-zero mixed the two conventions.
+        bool UsesLameTag
+        {
+            get { return _vbrInfo != null && _vbrInfo.HasLameTag && (_vbrInfo.EncoderDelay > 0 || _vbrInfo.EncoderPadding > 0); }
+        }
+
         internal int EncoderDelay
         {
             get
             {
-                if (_vbrInfo != null && _vbrInfo.EncoderDelay > 0) return _vbrInfo.EncoderDelay;
+                if (UsesLameTag) return _vbrInfo.EncoderDelay;
                 if (_id3Frame != null) return _id3Frame.EncoderDelay;
                 return 0;
             }
+        }
+
+        /// <summary>The delay and padding come from a LAME tag on a Layer III stream, whose <c>delay</c> field counts the
+        /// encoder's delay only: the decoder adds the filterbank's own 529 samples (iTunSMPB's priming is used as written).</summary>
+        internal bool EncoderDelayIsLame
+        {
+            get { return UsesLameTag && _first != null && _first.Layer == MpegLayer.LayerIII; }
         }
 
         internal int EncoderPadding
         {
             get
             {
-                if (_vbrInfo != null && _vbrInfo.EncoderPadding > 0) return _vbrInfo.EncoderPadding;
+                if (UsesLameTag) return _vbrInfo.EncoderPadding;
                 if (_id3Frame != null) return _id3Frame.EncoderPadding;
                 return 0;
             }
+        }
+
+        internal MpegFrame GetFirstFrame()
+        {
+            return _first;
         }
 
         internal int SampleRate
