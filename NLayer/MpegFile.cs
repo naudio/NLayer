@@ -16,7 +16,25 @@ namespace NLayer
         object _seekLock = new object();
         long _position;
         int _encoderDelay, _encoderPadding;
-        bool _decoderDelaySkipped;
+
+        // Samples still to drop from the decoder's output before the first one ReadSamples hands out: the leading
+        // delay at the start of the stream, or the distance from a seek's frame boundary to the requested sample.
+        // A count rather than a flag, so it can span frames (an MPEG-2/2.5 frame is only 576 samples long).
+        int _skipSamples;
+
+        // Where the real audio begins in the raw decoded stream, and how much of the raw end is not audio. The encoder
+        // delay and padding, adjusted for the Layer III synthesis filterbank's own delay when they come from a LAME
+        // tag: LAME stores only the encoder delay (576 for LAME 3.100) and its spec has a decoder skip delay + 528 + 1
+        // and trim padding - 529, so the trimmed LENGTH is unchanged and only the alignment moves. When the padding is
+        // smaller than 529 the decoded stream simply ends early: nothing is trimmed there, and the length is what can
+        // actually be read.
+        int _leadSamples, _trailSamples;
+
+        /// <summary>The Layer III decoder delay a LAME tag's <c>delay</c> field does not include (528 + 1).</summary>
+        const int LameDecoderDelay = 529;
+
+        /// <summary>The most frames a seek decodes unheard before its target (see <see cref="SeekPrerollFrames"/>).</summary>
+        const int MaxSeekPrerollFrames = 48;
 
         /// <summary>
         /// Construct Mpeg file representation from filename.
@@ -47,6 +65,35 @@ namespace NLayer
 
             _encoderDelay = _reader.EncoderDelay;
             _encoderPadding = _reader.EncoderPadding;
+            var decoderDelay = _reader.EncoderDelayIsLame ? LameDecoderDelay : 0;
+            _leadSamples = _encoderDelay + decoderDelay;
+            _trailSamples = Math.Max(0, _encoderPadding - decoderDelay);
+            _skipSamples = _leadSamples;
+        }
+
+        // The number of samples (per channel) of real audio, or -1 when the stream's length is unknown.
+        long TrimmedSampleCount()
+        {
+            var count = _reader.SampleCount;
+            return count < 0 ? -1 : Math.Max(0L, count - _leadSamples - _trailSamples);
+        }
+
+        // Frames to decode unheard before a seek target so the bit reservoir holds everything the target frame refers
+        // back to: a Layer III frame's main data can begin main_data_begin bytes before it (up to 511 for MPEG-1, 255 for
+        // MPEG-2/2.5), and at the lowest bitrate a frame carries few main-data bytes (68 at 32 kbps / 44.1 kHz stereo,
+        // 11 at 8 kbps / 24 kHz mono). One more frame primes the filterbank overlap. Layers I and II keep no reservoir.
+        int SeekPrerollFrames()
+        {
+            var first = _reader.GetFirstFrame();
+            if (first == null) return 1;
+            if (first.Layer != MpegLayer.LayerIII) return 1;
+            var mpeg1 = first.Version == MpegVersion.Version1;
+            var mono = first.ChannelMode == MpegChannelMode.Mono;
+            var reach = mpeg1 ? 511 : 255;
+            var smallestFrame = mpeg1 ? 144 * 32000 / first.SampleRate : 72 * 8000 / first.SampleRate;
+            var sideInfo = mpeg1 ? (mono ? 17 : 32) : (mono ? 9 : 17);
+            var mainBytes = Math.Max(1, smallestFrame - 4 - 2 - sideInfo);          // - 2: a CRC, if any
+            return Math.Min(MaxSeekPrerollFrames, (reach + mainBytes - 1) / mainBytes + 1);
         }
 
         /// <summary>
@@ -89,9 +136,9 @@ namespace NLayer
         {
             get
             {
-                var count = _reader.SampleCount;
+                var count = TrimmedSampleCount();
                 if (count < 0) return -1;
-                return (count - _encoderDelay - _encoderPadding) * OutputChannels * sizeof(float);
+                return count * OutputChannels * sizeof(float);
             }
         }
 
@@ -102,14 +149,16 @@ namespace NLayer
         {
             get
             {
-                var len = _reader.SampleCount;
-                if (len == -1) return TimeSpan.Zero;
-                return TimeSpan.FromSeconds((double)(len - _encoderDelay - _encoderPadding) / _reader.SampleRate);
+                var len = TrimmedSampleCount();
+                if (len < 0) return TimeSpan.Zero;
+                return TimeSpan.FromSeconds((double)len / _reader.SampleRate);
             }
         }
 
         /// <summary>
-        /// Current decode position, in number of sample. Calling the setter will result in a seeking operation.
+        /// Current decode position, in bytes of decoded float samples, counted from the first sample of real audio
+        /// (after the encoder delay is trimmed). Calling the setter will result in a seeking operation that lands on
+        /// exactly that sample.
         /// </summary>
         public long Position
         {
@@ -119,35 +168,51 @@ namespace NLayer
                 if (!_reader.CanSeek) throw new InvalidOperationException("Cannot Seek!");
                 if (value < 0L) throw new ArgumentOutOfRangeException("value");
 
-                // we're thinking in 4-byte samples, pcmStep interleaved...  adjust accordingly
-                var samples = value / sizeof(float) / OutputChannels;
-                var sampleOffset = 0;
+                // we're thinking in 4-byte samples, pcmStep interleaved...  adjust accordingly. The requested sample is
+                // in the trimmed timeline; the stream is seeked in the raw one, where it sits _leadSamples later.
+                var target = value / sizeof(float) / OutputChannels;
+                var total = TrimmedSampleCount();
+                if (total >= 0 && target > total) throw new ArgumentOutOfRangeException("value");
+                var rawTarget = target + _leadSamples;
 
-                // seek to the frame preceding the one we want (unless we're seeking to the first frame)
-                if (samples >= _reader.FirstFrameSampleCount)
-                {
-                    sampleOffset = _reader.FirstFrameSampleCount;
-                    samples -= sampleOffset;
-                }
+                // start a few frames before the one we want and decode them unheard (see SeekPrerollFrames): with too
+                // little pre-roll the bit reservoir lacks the target frame's main data, the decoder drops that frame,
+                // and the read resumes a whole frame late.
+                var frameSamples = Math.Max(1, _reader.FirstFrameSampleCount);
+                var start = Math.Max(0L, rawTarget - (long)SeekPrerollFrames() * frameSamples);
 
                 lock (_seekLock)
                 {
                     // seek the stream
-                    var newPos = _reader.SeekTo(samples);
+                    var newPos = _reader.SeekTo(start);
                     if (newPos == -1) throw new ArgumentOutOfRangeException("value");
 
                     _decoder.Reset();
 
-                    // if we have a sample offset, decode the next frame
-                    if (sampleOffset != 0)
+                    // decode every frame that ends at or before the target and throw its output away (the decoder resyncs
+                    // its reservoir and overlap); walking by each frame's own sample count stays exact with mixed sizes
+                    try
                     {
-                        _decoder.DecodeFrame(_reader.NextFrame(), _readBuf, 0); // throw away a frame (but allow the decoder to resync)
-                        newPos += sampleOffset;
+                        Decoder.MpegFrame frame;
+                        while ((frame = _reader.GetCurrentFrame()) != null && newPos + frame.SampleCount <= rawTarget)
+                        {
+                            frame = _reader.NextFrame();
+                            try { _decoder.DecodeFrame(frame, _readBuf, 0); }
+                            catch (System.IO.InvalidDataException) { _decoder.Reset(); }
+                            finally { frame.ClearBuffer(); }
+                            newPos += frame.SampleCount;
+                        }
+                    }
+                    catch (System.IO.EndOfStreamException)
+                    {
+                        // a truncated frame in the pre-roll: stop there, the state below is still made consistent
                     }
 
-                    _position = newPos * sizeof(float) * OutputChannels;
+                    // newPos is the raw sample the next decoded frame starts on (a frame boundary at or before the
+                    // target): drop up to the requested sample so the read resumes exactly there.
+                    _skipSamples = (int)Math.Max(0L, target + _leadSamples - newPos);
+                    _position = target * sizeof(float) * OutputChannels;
                     _eofFound = false;
-                    _decoderDelaySkipped = (newPos > 0 || _encoderDelay == 0);
 
                     // clear the decoder & buffer
                     _readBufOfs = _readBufLen = 0;
@@ -269,8 +334,8 @@ namespace NLayer
         // Total logical bytes of real audio (excludes encoder delay and end padding)
         long GetTotalBytes()
         {
-            var rawSampleCount = _reader.SampleCount;
-            return rawSampleCount >= 0 ? (rawSampleCount - _encoderDelay - _encoderPadding) * OutputChannels * sizeof(float) : long.MaxValue;
+            var count = TrimmedSampleCount();
+            return count >= 0 ? count * OutputChannels * sizeof(float) : long.MaxValue;
         }
 
         // Decode the next frame into _readBuf. Returns false once there is nothing
@@ -296,16 +361,14 @@ namespace NLayer
                     _readBufLen = _decoder.DecodeFrame(frame, _readBuf, 0) * sizeof(float);
                     _readBufOfs = 0;
 
-                    // Skip encoder delay samples at the start of the stream
-                    if (!_decoderDelaySkipped)
+                    // Drop the leading delay (or a seek's in-frame offset), across as many frames as it spans
+                    if (_skipSamples > 0)
                     {
-                        var skipBytes = _encoderDelay * OutputChannels * sizeof(float);
-                        if (skipBytes > 0 && skipBytes <= _readBufLen)
-                        {
-                            _readBufOfs = skipBytes;
-                        }
-                        _decoderDelaySkipped = true;
-                        // If delay exhausted the entire buffer, mark it empty so we refill next iteration
+                        var frameSamples = _readBufLen / sizeof(float) / OutputChannels;
+                        var drop = Math.Min(_skipSamples, frameSamples);
+                        _skipSamples -= drop;
+                        _readBufOfs = drop * OutputChannels * sizeof(float);
+                        // If the skip exhausted the entire buffer, mark it empty so we refill next iteration
                         if (_readBufOfs >= _readBufLen)
                         {
                             _readBufLen = _readBufOfs = 0;
